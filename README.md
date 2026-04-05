@@ -13,6 +13,38 @@
 
 ---
 
+## 📦 安装与运行
+
+### 开发环境
+
+#### 1. 克隆项目
+```bash
+git clone <项目地址>
+cd SoftwareManager
+```
+
+#### 2. 安装依赖
+```bash
+npm install
+```
+
+#### 3. 运行项目
+```bash
+npm start
+```
+
+### 生产环境
+
+#### 打包应用
+```bash
+# 打包为Windows安装包
+npm run build
+
+# 打包后的文件在 dist 目录中
+```
+
+---
+
 ## ✨ 核心功能
 
 ### 1. 📦 软件管理
@@ -333,38 +365,6 @@
 
 ### 第三方库
 - **marked.js** - Markdown解析和渲染
-
----
-
-## 📦 安装与运行
-
-### 开发环境
-
-#### 1. 克隆项目
-```bash
-git clone <项目地址>
-cd SoftwareManager
-```
-
-#### 2. 安装依赖
-```bash
-npm install
-```
-
-#### 3. 运行项目
-```bash
-npm start
-```
-
-### 生产环境
-
-#### 打包应用
-```bash
-# 打包为Windows安装包
-npm run build
-
-# 打包后的文件在 dist 目录中
-```
 
 ---
 
