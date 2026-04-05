@@ -1,0 +1,3743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>软件管理器</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        ::-webkit-scrollbar {
+            width: 16px;
+            height: 16px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 7px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 7px;
+            transition: background 0.3s;
+            border: 2px solid #e0e0e0;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            /* 容器最大宽度：1200px，高度根据内容自适应 */
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .search-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .search-section input,
+        .search-section select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .file-input-wrapper input {
+            flex: 1;
+        }
+
+        .btn-file {
+            background: #667eea;
+            color: white;
+            padding: 12px 20px;
+            white-space: nowrap;
+        }
+
+        .btn-file:hover {
+            background: #5568d3;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2ed573;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.error {
+            background: #ff4757;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-danger:hover {
+            background: #ff3838;
+        }
+
+        .btn-success {
+            background: #2ed573;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-success:hover {
+            background: #26af61;
+        }
+
+        .btn-info {
+            background: #1e90ff;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-info:hover {
+            background: #0c7cd5;
+        }
+
+        .btn-warning {
+            background: #ffa502;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-warning:hover {
+            background: #e69500;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .software-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .software-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .software-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .software-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .software-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .software-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .software-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .info-value.online {
+            color: #2ed573;
+        }
+
+        .info-value.local {
+            color: #ffa502;
+        }
+
+        .software-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            color: #555;
+            line-height: 1.6;
+            padding-right: 20px;
+            padding-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .software-info {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .software-footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .software-tags {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .software-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+
+        #mdContent {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        #mdContent h1, #mdContent h2, #mdContent h3, #mdContent h4, #mdContent h5, #mdContent h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        #mdContent h1 {
+            font-size: 2em;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: .3em;
+        }
+
+        #mdContent h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: .3em;
+        }
+
+        #mdContent h3 {
+            font-size: 1.25em;
+        }
+
+        #mdContent p {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        #mdContent code {
+            padding: .2em .4em;
+            margin: 0;
+            font-size: 85%;
+            background-color: rgba(27, 31, 35, .05);
+            border-radius: 3px;
+            font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+        }
+
+        #mdContent pre {
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        #mdContent pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        #mdContent ul, #mdContent ol {
+            padding-left: 2em;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        #mdContent li {
+            margin-top: .25em;
+        }
+
+        #mdContent blockquote {
+            padding: 0 1em;
+            color: #6a737d;
+            border-left: .25em solid #dfe2e5;
+            margin: 0 0 16px 0;
+        }
+
+        #mdContent table {
+            border-spacing: 0;
+            border-collapse: collapse;
+            margin-top: 0;
+            margin-bottom: 16px;
+            width: 100%;
+        }
+
+        #mdContent table th, #mdContent table td {
+            padding: 6px 13px;
+            border: 1px solid #dfe2e5;
+        }
+
+        #mdContent table th {
+            font-weight: 600;
+            background-color: #f6f8fa;
+        }
+
+        #mdContent table tr {
+            background-color: #fff;
+            border-top: 1px solid #c6cbd1;
+        }
+
+        #mdContent table tr:nth-child(2n) {
+            background-color: #f6f8fa;
+        }
+
+        #mdContent img {
+            max-width: 100%;
+            box-sizing: content-box;
+            background-color: #fff;
+        }
+
+        #mdContent a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+
+        #mdContent a:hover {
+            text-decoration: underline;
+        }
+
+        /* 深色模式 */
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        body.dark-mode .container {
+            background: #1e1e2e;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        body.dark-mode .modal-body {
+            padding-right: 20px;
+        }
+
+        body.dark-mode ::-webkit-scrollbar-track {
+            background: #2d2d3f;
+            border-radius: 7px;
+        }
+
+        body.dark-mode ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 7px;
+            border: 2px solid #2d2d3f;
+        }
+
+        body.dark-mode ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+        }
+
+        body.dark-mode ::-webkit-scrollbar-corner {
+            background: #2d2d3f;
+        }
+
+        body.dark-mode .header {
+            background: linear-gradient(135deg, #4c4c6d 0%, #3d3d5c 100%);
+        }
+
+        body.dark-mode .form-section {
+            background: #2d2d3f;
+        }
+
+        body.dark-mode .form-section h2 {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .form-group label {
+            color: #bbb;
+        }
+
+        body.dark-mode .form-group input,
+        body.dark-mode .form-group select,
+        body.dark-mode .form-group textarea {
+            background: #3d3d4f;
+            border: 2px solid #4d4d63;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .form-group input:focus,
+        body.dark-mode .form-group select:focus,
+        body.dark-mode .form-group textarea:focus {
+            border-color: #667eea;
+        }
+
+        body.dark-mode .stat-card {
+            background: #2d2d3f;
+            border: 1px solid #3d3d4f;
+        }
+
+        body.dark-mode .stat-number {
+            color: #667eea;
+        }
+
+        body.dark-mode .stat-label {
+            color: #aaa;
+        }
+
+        body.dark-mode .software-card {
+            background: #2d2d3f;
+            border: 2px solid #3d3d4f;
+        }
+
+        body.dark-mode .software-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        body.dark-mode .software-name {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .info-label {
+            color: #888;
+        }
+
+        body.dark-mode .info-value {
+            color: #ddd;
+        }
+
+        body.dark-mode .search-section {
+            background: #2d2d3f;
+        }
+
+        body.dark-mode .search-section h2 {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .search-section input,
+        body.dark-mode .search-section select {
+            background: #3d3d4f;
+            border: 2px solid #4d4d63;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .stat-card {
+            background: #2d2d3f;
+            border: 1px solid #3d3d4f;
+        }
+
+        body.dark-mode .modal-content {
+            background: #2d2d3f;
+        }
+
+        body.dark-mode .modal-header h3 {
+            color: white;
+        }
+
+        body.dark-mode .close-btn {
+            color: #bbb;
+        }
+
+        body.dark-mode .close-btn:hover {
+            color: white;
+        }
+
+        body.dark-mode .modal-body {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #mdContent {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #editModal .form-group label {
+            color: #bbb;
+        }
+
+        body.dark-mode #editModal .form-group input,
+        body.dark-mode #editModal .form-group select,
+        body.dark-mode #editModal .form-group textarea {
+            background: #3d3d4f;
+            border: 2px solid #4d4d63;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #editModal .form-group input:focus,
+        body.dark-mode #editModal .form-group select:focus,
+        body.dark-mode #editModal .form-group textarea:focus {
+            border-color: #667eea;
+        }
+
+        body.dark-mode #editModal .tag-selector {
+            background: #3d3d4f;
+            border: 2px solid #4d4d63;
+        }
+
+        body.dark-mode #editModal .tag-option {
+            color: #ddd;
+        }
+
+        body.dark-mode #editModal .tag-option:hover {
+            background: #4c4c6d;
+        }
+
+        body.dark-mode #editModal .tag-container {
+            background: #3d3d4f;
+            border: 2px solid #4d4d63;
+        }
+
+        body.dark-mode #editModal .tag {
+            background: #667eea;
+            color: white;
+        }
+
+        body.dark-mode #mdContent h1,
+        body.dark-mode #mdContent h2,
+        body.dark-mode #mdContent h3,
+        body.dark-mode #mdContent h4,
+        body.dark-mode #mdContent h5,
+        body.dark-mode #mdContent h6 {
+            color: #e0e0e0;
+            border-bottom-color: #3d3d4f;
+        }
+
+        body.dark-mode #mdContent code {
+            background: #3d3d4f;
+            color: #f0f0f0;
+        }
+
+        body.dark-mode #mdContent pre {
+            background: #3d3d4f;
+        }
+
+        body.dark-mode #mdContent blockquote {
+            border-left-color: #667eea;
+            background: #3d3d4f;
+        }
+
+        body.dark-mode #mdContent table th {
+            background-color: #3d3d4f;
+            border-color: #4d4d63;
+        }
+
+        body.dark-mode #mdContent table td {
+            border-color: #4d4d63;
+        }
+
+        body.dark-mode #mdContent table tr {
+            background-color: #2d2d3f;
+            border-top-color: #4d4d63;
+        }
+
+        body.dark-mode #mdContent table tr:nth-child(2n) {
+            background-color: #3d3d4f;
+        }
+
+        body.dark-mode #mdContent img {
+            background-color: #2d2d3f;
+        }
+
+        body.dark-mode .theme-toggle {
+            background: #3d3d4f;
+        }
+
+        body.dark-mode .theme-toggle:hover {
+            background: #4d4d63;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            background: #f0f4ff;
+            color: #667eea;
+            border: 1px solid #d0d9ff;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .tag .tag-remove {
+            font-size: 14px;
+            font-weight: bold;
+            opacity: 0.7;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .tag:hover .tag-remove {
+            opacity: 0.9;
+        }
+
+        .tag .tag-remove:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            min-height: 44px;
+            border: 2px dashed #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .tag-container:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        body.dark-mode .tag-container {
+            background: #2a2a3a;
+            border-color: #3d3d4f;
+        }
+
+        body.dark-mode .tag-container:hover {
+            border-color: #667eea;
+            background: #2f2f40;
+        }
+
+        .tag-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #newTagInput:focus,
+        #editNewTagInput:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+        }
+
+        body.dark-mode #newTagInput,
+        body.dark-mode #editNewTagInput {
+            background: #2a2a3a;
+            border-color: #3d3d4f;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #newTagInput:focus,
+        body.dark-mode #editNewTagInput:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+        }
+
+        #newTagInput::placeholder,
+        #editNewTagInput::placeholder {
+            color: #aaa;
+            transition: color 0.3s;
+        }
+
+        #newTagInput:focus::placeholder,
+        #editNewTagInput:focus::placeholder {
+            color: #ccc;
+        }
+
+        body.dark-mode #newTagInput::placeholder,
+        body.dark-mode #editNewTagInput::placeholder {
+            color: #666;
+        }
+
+        body.dark-mode #newTagInput:focus::placeholder,
+        body.dark-mode #editNewTagInput:focus::placeholder {
+            color: #888;
+        }
+
+        .star {
+            transition: all 0.3s;
+            color: #ddd;
+        }
+
+        .star:hover,
+        .star.active,
+        .star.hover {
+            color: #ffa502;
+            transform: scale(1.1);
+        }
+
+        .software-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 20px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px dashed #e0e0e0;
+        }
+
+        body.dark-mode .software-footer {
+            border-top-color: #3d3d4f;
+        }
+
+        .software-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        .software-tag {
+            padding: 4px 10px;
+            background: #f0f4ff;
+            color: #667eea;
+            border: 1px solid #d0d9ff;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .software-tag:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        body.dark-mode .software-tag {
+            background: #2a2a3a;
+            color: #a0a4ff;
+            border-color: #3d3d4f;
+        }
+
+        body.dark-mode .software-tag:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .software-rating {
+            font-size: 18px;
+            color: #ffa502;
+            margin-top: 5px;
+        }
+
+        .software-note {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #555;
+            border-left: 3px solid #667eea;
+        }
+
+        body.dark-mode .software-note {
+            background: #3d3d4f;
+            color: #bbb;
+        }
+
+        .edit-star {
+            transition: all 0.3s;
+            color: #ddd;
+        }
+
+        .edit-star:hover,
+        .edit-star.active,
+        .edit-star.hover {
+            color: #ffa502;
+            transform: scale(1.1);
+        }
+
+        .favorite-star[data-favorite="true"] {
+            color: #ffa502;
+        }
+
+        .favorite-star[data-favorite="false"] {
+            color: #999;
+        }
+
+        .favorite-star:hover {
+            transform: scale(1.2);
+        }
+
+        .favorite-star[data-favorite="false"]:hover {
+            color: #666;
+        }
+
+        body.dark-mode .favorite-star[data-favorite="false"] {
+            color: #888;
+        }
+
+        body.dark-mode .favorite-star[data-favorite="false"]:hover {
+            color: #bbb;
+        }
+
+        .software-icon {
+            font-size: 24px;
+            margin-right: 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid rgba(0, 0, 0, 0.12);
+            background: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        body.dark-mode .software-icon {
+            border-color: rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+        }
+
+        .tag-select-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .tag-select-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .tag-select-input:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        .tag-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-top: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+        }
+
+        .tag-dropdown.active {
+            display: block;
+        }
+
+        .tag-dropdown-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            border-bottom: 1px solid #d0d0d0;
+        }
+
+        .tag-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .tag-dropdown-item:hover {
+            background: #f0f4ff;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .tag-dropdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tag-dropdown-item .added-icon {
+            color: #667eea;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .tag-dropdown-item.selected .added-icon {
+            opacity: 1;
+        }
+
+        .tag-dropdown-empty {
+            padding: 15px;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .tag-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .tag-manager-btn {
+            padding: 9px 9px;
+            border-radius: 10px;
+            font-weight: 500;
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-size: 18px;
+        }
+
+        .tag-manager-btn .btn-icon {
+            display: inline;
+        }
+
+        .tag-manager-btn .btn-text {
+            display: none;
+            font-size: 15px;
+        }
+
+        @media (min-width: 900px) {
+            .tag-manager-btn {
+                padding: 10px 10px;
+                font-size: 14px;
+            }
+            .tag-manager-btn .btn-icon {
+                display: none;
+            }
+            .tag-manager-btn .btn-text {
+                display: inline;
+            }
+        }
+
+        .tag-manager-btn:hover {
+            background: #5a6fd6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .tag-add-btn {
+            padding: 9px 9px;
+            border-radius: 10px;
+            font-weight: 500;
+            background: #10b981;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-size: 20px;
+            min-width: 20px;
+            min-height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tag-add-btn .btn-icon {
+            display: inline;
+        }
+
+        .tag-add-btn .btn-text {
+            display: none;
+            font-size: 15px;
+        }
+
+        @media (min-width: 900px) {
+            .tag-add-btn {
+                padding: 10px 10px;
+                font-size: 14px;
+                min-width: auto;
+                min-height: auto;
+            }
+            .tag-add-btn .btn-icon {
+                display: none;
+            }
+            .tag-add-btn .btn-text {
+                display: inline;
+            }
+        }
+
+        .tag-add-btn:hover {
+            background: #0da271;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .tag-manager-modal .modal-content {
+            max-width: 700px;
+            width: 90%;
+        }
+
+        .tag-manager-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .tag-manager-search {
+            flex: 1;
+            min-width: 150px;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .tag-manager-search:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .tag-manager-sort {
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+            transition: all 0.2s;
+            line-height: 1.5;
+        }
+
+        .tag-manager-sort:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .tag-manager-sort:hover {
+            border-color: #667eea;
+        }
+
+        .tag-manager-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            padding-top: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .tag-manager-item {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            font-size: 14px;
+            border: 1px solid #a0a0a0;
+            position: relative;
+        }
+
+        .tag-manager-item:hover {
+            background: linear-gradient(135deg, #f5f7ff 0%, #e8ecff 100%);
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .tag-manager-item.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .tag-manager-item .tag-name {
+            font-weight: 600;
+            font-size: 15px;
+            display: block;
+        }
+
+        .tag-manager-item .tag-count {
+            display: block;
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(0, 0, 0, 0.3);
+        }
+
+        .tag-manager-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        body.dark-mode .tag-select-input {
+            background: #2d2d3f;
+            border-color: #4d4d63;
+            color: white;
+        }
+
+        body.dark-mode .tag-dropdown {
+            background: #2d2d3f;
+            border-color: #4d4d63;
+        }
+
+        body.dark-mode .tag-dropdown-item {
+            border-bottom-color: #5d5d73;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .tag-dropdown-item:hover {
+            background: #3d3d4f;
+            color: #a5b4fc;
+            font-weight: 500;
+        }
+
+        body.dark-mode .tag-dropdown-item.selected {
+            background: #667eea;
+            color: white;
+        }
+
+        body.dark-mode .tag-dropdown-item .added-icon {
+            color: #a5b4fc;
+        }
+
+        body.dark-mode .tag-manager-search {
+            background: #2d2d3f;
+            border-color: #4d4d63;
+            color: white;
+        }
+
+        body.dark-mode .tag-manager-search:focus {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        body.dark-mode .tag-manager-sort {
+            background: #2d2d3f;
+            border-color: #4d4d63;
+            color: white;
+        }
+
+        body.dark-mode .tag-manager-sort:focus {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        body.dark-mode .tag-manager-sort:hover {
+            border-color: #667eea;
+        }
+
+        body.dark-mode .tag-manager-sort option {
+            background: #2d2d3f;
+            color: white;
+        }
+
+        body.dark-mode .tag-manager-item {
+            background: linear-gradient(135deg, #3a3a4d 0%, #2d2d3f 100%);
+            color: white;
+            border: 1px solid #7a7a9a;
+        }
+
+        body.dark-mode .tag-manager-item:hover {
+            background: linear-gradient(135deg, #4a4a5d 0%, #3d3d4f 100%);
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        body.dark-mode .tag-manager-item.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        body.dark-mode .tag-manager-item .tag-count {
+            border-top-color: rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+    <div class="container">
+        <div class="header">
+            <h1>📦 软件管理器</h1>
+            <p>轻松管理您的软件安装包和安装方式</p>
+        </div>
+
+        <div class="content">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalCount">0</div>
+                    <div class="stat-label">软件总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="favoriteCount">0</div>
+                    <div class="stat-label">⭐ 已收藏</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="onlineCount">0</div>
+                    <div class="stat-label">在线安装</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="localCount">0</div>
+                    <div class="stat-label">本地安装</div>
+                </div>
+            </div>
+
+            <div class="form-section" id="formSection">
+                <h2 id="formTitle">➕ 添加新软件</h2>
+                <form id="softwareForm">
+                    <!-- 第一行：软件名称、版本号、安装方式 -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>软件名称 *</label>
+                            <input type="text" id="softwareName" required placeholder="例如：Visual Studio Code">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>版本号</label>
+                            <input type="text" id="softwareVersion" placeholder="例如：1.85.0">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>安装方式 *</label>
+                            <select id="installType" required onchange="toggleFileInput()">
+                                <option value="">请选择</option>
+                                <option value="online">在线安装</option>
+                                <option value="local">本地安装</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 第二行：安装包位置/下载链接、分类、标签 -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label id="pathLabel">安装包位置/下载链接 *</label>
+                            <div class="file-input-wrapper">
+                                <input type="text" id="installPath" required placeholder="请输入下载链接">
+                                <button type="button" id="selectFileBtn" class="btn btn-file hidden" onclick="handleFileSelect()">📁 选择文件</button>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>分类</label>
+                            <select id="category">
+                                <option value="">请选择</option>
+                                <option value="开发工具">开发工具</option>
+                                <option value="办公软件">办公软件</option>
+                                <option value="媒体工具">媒体工具</option>
+                                <option value="系统工具">系统工具</option>
+                                <option value="浏览器">浏览器</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>标签</label>
+                            <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
+                                <div id="tagContainer" class="tag-container" style="flex: 1; margin-bottom: 0;"></div>
+                                <button type="button" class="tag-manager-btn" onclick="openTagManager()"><span class="btn-icon">🏷️</span><span class="btn-text">标签管理</span></button>
+                            </div>
+                            <div class="tag-select-wrapper" style="display: flex; gap: 10px; align-items: flex-start;">
+                                <div style="flex: 1;">
+                                    <input type="text" id="newTagInput" class="tag-select-input" placeholder="选择或输入标签...回车添加" autocomplete="off">
+                                    <div class="tag-dropdown" id="tagDropdown"></div>
+                                </div>
+                                <button type="button" class="tag-add-btn" onclick="addTagFromInput()">
+                                    <span class="btn-icon">+</span>
+                                    <span class="btn-text">添加标签</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 第三行：评分、个人备注、安装说明 -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>评分</label>
+                            <div id="ratingContainer" style="display: flex; gap: 5px; font-size: 28px; cursor: pointer;">
+                                <span class="star" data-value="1">☆</span>
+                                <span class="star" data-value="2">☆</span>
+                                <span class="star" data-value="3">☆</span>
+                                <span class="star" data-value="4">☆</span>
+                                <span class="star" data-value="5">☆</span>
+                            </div>
+                            <input type="hidden" id="ratingValue" value="0">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>个人备注</label>
+                            <textarea id="personalNote" placeholder="添加您的个人备注..." style="min-height: 80px;"></textarea>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>安装说明</label>
+                            <textarea id="installNotes" placeholder="安装步骤或注意事项" style="min-height: 80px;"></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- 第四行：MD文档说明(可选) -->
+                    <div style="margin-bottom: 25px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>MD 文档说明（可选）</label>
+                            <div class="file-input-wrapper">
+                                <input type="text" id="mdFilePath" placeholder="选择 Markdown 文档" readonly>
+                                <button type="button" class="btn btn-file" onclick="handleMdFileSelect()">📄 选择 MD 文件</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 15px; margin-top: 20px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="isInstalled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 14px; color: #555;">✅ 已安装</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="isFavorite" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 14px; color: #555;">⭐ 收藏</span>
+                        </label>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">添加软件</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="search-section">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <input type="text" id="searchInput" placeholder="🔍 搜索软件名称、分类、版本号、安装方式或标签...">
+                    </div>
+                    <div style="min-width: 150px;">
+                        <select id="sortBy">
+                            <option value="">默认排序</option>
+                            <option value="favorite-first">收藏优先</option>
+                            <option value="name-asc">名称 A-Z</option>
+                            <option value="name-desc">名称 Z-A</option>
+                            <option value="time-new">最新添加</option>
+                            <option value="time-old">最旧添加</option>
+                            <option value="category">按分类</option>
+                            <option value="installType">按安装方式</option>
+                            <option value="rating-desc">评分 高-低</option>
+                            <option value="rating-asc">评分 低-高</option>
+                        </select>
+                    </div>
+                    <div style="min-width: 150px;">
+                        <select id="filterCategory">
+                            <option value="">全部分类</option>
+                            <option value="开发工具">开发工具</option>
+                            <option value="办公软件">办公软件</option>
+                            <option value="媒体工具">媒体工具</option>
+                            <option value="系统工具">系统工具</option>
+                            <option value="浏览器">浏览器</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div style="min-width: 150px;">
+                        <select id="filterInstallType">
+                            <option value="">全部安装方式</option>
+                            <option value="online">🌐 在线安装</option>
+                            <option value="local">💾 本地安装</option>
+                        </select>
+                    </div>
+                    <div style="min-width: 150px;">
+                        <select id="filterInstalled">
+                            <option value="">全部状态</option>
+                            <option value="true">✅ 已安装</option>
+                            <option value="false">⬜ 未安装</option>
+                        </select>
+                    </div>
+                    <div style="min-width: 150px;">
+                        <select id="filterFavorite">
+                            <option value="">全部收藏</option>
+                            <option value="true">⭐ 已收藏</option>
+                            <option value="false">☆ 未收藏</option>
+                        </select>
+                    </div>
+                    <div style="min-width: 150px;">
+                        <select id="filterTag">
+                            <option value="">全部标签</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-info" onclick="exportData()">📤 导出数据</button>
+                <button class="btn btn-warning" onclick="importData()">📥 导入数据</button>
+                <button class="btn btn-danger" onclick="clearAllData()">🧹 清除所有数据</button>
+                <button class="btn" id="selectAllBtn" onclick="toggleSelectAll()">☑️ 全选</button>
+                <button class="btn btn-danger hidden" id="batchDeleteBtn" onclick="batchDeleteSoftware()">🗑️ 删除选中 (<span id="selectedCount">0</span>)</button>
+                <button class="btn btn-danger" onclick="deleteAllSoftware()">🗑️ 删除所有</button>
+            </div>
+
+            <div id="softwareList" class="software-list">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
+                    </svg>
+                    <h3>还没有添加任何软件</h3>
+                    <p>在上方表单中添加您的第一个软件</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="installModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>安装说明</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalContent"></div>
+            <div id="mdButtonContainer" style="display: none; margin-top: 15px; text-align: center;">
+                <button class="btn btn-info" id="viewMdBtn">📄 查看 MD 文档说明</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>确认删除</h3>
+                <button class="close-btn" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">确定要删除此软件吗？此操作不可恢复。</p>
+                <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
+                    <button class="btn" onclick="closeConfirmModal()">取消</button>
+                    <button class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal tag-manager-modal" id="tagManagerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏷️ 标签管理</h3>
+                <button class="close-btn" onclick="closeTagManager()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center;">
+                    <input type="text" class="tag-manager-search" id="tagManagerSearch" placeholder="搜索标签...">
+                    <select id="tagManagerSort" class="tag-manager-sort">
+                        <option value="name">按名称排序</option>
+                        <option value="count">按使用数量排序</option>
+                    </select>
+                </div>
+                <div class="tag-manager-grid" id="tagManagerGrid"></div>
+                <div class="tag-manager-footer">
+                    <button class="btn" onclick="closeTagManager()">取消</button>
+                    <button class="btn btn-danger" onclick="deleteAllTags()">🗑️ 删除所有</button>
+                    <button class="btn btn-danger" id="tagManagerDeleteBtn" onclick="deleteSelectedTags()" style="display: none;">🗑️ 删除</button>
+                    <button class="btn btn-primary" id="tagManagerConfirmBtn">确认选择</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="pathModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>文件夹路径</h3>
+                <button class="close-btn" onclick="closePathModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="pathMessage" style="margin-bottom: 15px;">文件夹路径</p>
+                <div style="background: #f5f5f5; padding: 12px; border-radius: 8px; margin-bottom: 15px; word-break: break-all;">
+                    <code id="pathValue" style="color: #667eea;"></code>
+                </div>
+                <p style="color: #888; font-size: 14px; margin-bottom: 15px;">由于浏览器安全限制，无法直接打开资源管理器。请复制路径后手动粘贴到资源管理器地址栏。</p>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn" onclick="closePathModal()">关闭</button>
+                    <button class="btn btn-primary" id="copyPathBtn">📋 复制路径</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="mdModal">
+        <div class="modal-content" style="max-width: 800px; overflow-y: hidden;">
+            <div class="modal-header">
+                <h3>MD 文档说明</h3>
+                <button class="close-btn" onclick="closeMdModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="overflow: hidden;">
+                <div id="mdContent" style="background: #f9f9f9; padding: 20px; border-radius: 8px; max-height: 60vh; overflow-y: auto;"></div>
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="btn" onclick="closeMdModal()">关闭</button>
+                    <button class="btn" onclick="changeMdFile()">📄 更换MD文件</button>
+                    <button class="btn btn-info" id="viewTextBtn">📝 查看文本说明</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="editModal">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+            <!-- 编辑弹窗宽度设置为900px，以便更好地展示三列布局的内容 -->
+            <!-- 滚动条移到 modal-body 中，保持圆角完整 -->
+            <div class="modal-header">
+                <h3>✏️ 编辑软件</h3>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto; flex: 1;">
+                <form id="editForm">
+                    <!-- 第一行：软件名称、版本号、安装方式 -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>软件名称 *</label>
+                            <input type="text" id="editSoftwareName" required placeholder="例如：Visual Studio Code">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>版本号</label>
+                            <input type="text" id="editSoftwareVersion" placeholder="例如：1.85.0">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>安装方式 *</label>
+                            <select id="editInstallType" required onchange="toggleEditFileInput()">
+                                <option value="">请选择</option>
+                                <option value="online">在线安装</option>
+                                <option value="local">本地安装</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 第二行：安装包位置/下载链接、分类、标签 -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label id="editPathLabel">安装包位置/下载链接 *</label>
+                            <div class="file-input-wrapper">
+                                <input type="text" id="editInstallPath" required placeholder="请输入下载链接">
+                                <button type="button" id="editSelectFileBtn" class="btn btn-file hidden" onclick="handleEditFileSelect()">📁 选择文件</button>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>分类</label>
+                            <select id="editCategory">
+                                <option value="">请选择</option>
+                                <option value="开发工具">开发工具</option>
+                                <option value="办公软件">办公软件</option>
+                                <option value="媒体工具">媒体工具</option>
+                                <option value="系统工具">系统工具</option>
+                                <option value="浏览器">浏览器</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>标签</label>
+                            <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
+                                <div id="editTagContainer" class="tag-container" style="flex: 1; margin-bottom: 0;"></div>
+                                <button type="button" class="tag-manager-btn" onclick="openEditTagManager()"><span class="btn-icon">🏷️</span><span class="btn-text">标签管理</span></button>
+                            </div>
+                            <div class="tag-select-wrapper" style="display: flex; gap: 10px; align-items: flex-start;">
+                                <div style="flex: 1;">
+                                    <input type="text" id="editNewTagInput" class="tag-select-input" placeholder="选择或输入标签..." autocomplete="off">
+                                    <div class="tag-dropdown" id="editTagDropdown"></div>
+                                </div>
+                                <button type="button" class="tag-add-btn" onclick="addEditTagFromInput()">
+                                    <span class="btn-icon">+</span>
+                                    <span class="btn-text">添加标签</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 第三行：评分、个人备注、安装说明 -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>评分</label>
+                            <div id="editRatingContainer" style="display: flex; gap: 5px; font-size: 28px; cursor: pointer;">
+                                <span class="edit-star" data-value="1">☆</span>
+                                <span class="edit-star" data-value="2">☆</span>
+                                <span class="edit-star" data-value="3">☆</span>
+                                <span class="edit-star" data-value="4">☆</span>
+                                <span class="edit-star" data-value="5">☆</span>
+                            </div>
+                            <input type="hidden" id="editRatingValue" value="0">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>个人备注</label>
+                            <textarea id="editPersonalNote" placeholder="添加您的个人备注..." style="min-height: 80px;"></textarea>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>安装说明</label>
+                            <textarea id="editInstallNotes" placeholder="安装步骤或注意事项" style="min-height: 80px;"></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- 第四行：MD文档说明(可选) -->
+                    <div style="margin-bottom: 25px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>MD 文档说明（可选）</label>
+                            <div class="file-input-wrapper">
+                                <input type="text" id="editMdFilePath" placeholder="选择 Markdown 文档" readonly>
+                                <button type="button" class="btn btn-file" onclick="handleEditMdFileSelect()">📄 选择 MD 文件</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 15px; margin-top: 20px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="editIsInstalled" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 14px; color: #555;">✅ 已安装</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="editIsFavorite" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 14px; color: #555;">⭐ 收藏</span>
+                        </label>
+                        <button type="button" class="btn" onclick="closeEditModal()">取消</button>
+                        <button type="submit" class="btn btn-primary">保存更改</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let softwareData = [];
+        let pendingDeleteId = null;
+        let isAllSelected = false;
+        let selectedTags = [];
+        let currentRating = 0;
+        let editingSoftwareId = null;
+        let editSelectedTags = [];
+        let editCurrentRating = 0;
+        let filterInstalled = '';
+        let filterFavorite = '';
+        let tagHistory = {};
+        let isEditTagManager = false;
+        let tagManagerSelectedTags = [];
+        // currentSoftwareId 已在上面声明，此处无需重复声明
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('themeToggle').textContent = '☀️';
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark-mode');
+            const themeToggle = document.getElementById('themeToggle');
+            
+            if (isDark) {
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        initTheme();
+
+        function initRating() {
+            const stars = document.querySelectorAll('.star');
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    currentRating = parseInt(this.dataset.value);
+                    document.getElementById('ratingValue').value = currentRating;
+                    updateStarsDisplay();
+                });
+
+                star.addEventListener('mouseover', function() {
+                    const hoverValue = parseInt(this.dataset.value);
+                    updateStarsHover(hoverValue);
+                });
+
+                star.addEventListener('mouseout', function() {
+                    updateStarsDisplay();
+                });
+            });
+        }
+
+        function updateStarsDisplay() {
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < currentRating) {
+                    star.classList.add('active');
+                    star.textContent = '★';
+                } else {
+                    star.classList.remove('active');
+                    star.textContent = '☆';
+                }
+                star.classList.remove('hover');
+            });
+        }
+
+        function updateStarsHover(value) {
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < value) {
+                    star.classList.add('hover');
+                    star.textContent = '★';
+                } else {
+                    star.classList.remove('hover');
+                    if (index < currentRating) {
+                        star.classList.add('active');
+                        star.textContent = '★';
+                    } else {
+                        star.classList.remove('active');
+                        star.textContent = '☆';
+                    }
+                }
+            });
+        }
+
+        function addNewTag() {
+            const input = document.getElementById('newTagInput');
+            const tagName = input.value.trim();
+            
+            if (tagName && !selectedTags.includes(tagName)) {
+                selectedTags.push(tagName);
+                updateTagHistory(tagName);
+                renderTagContainer();
+                input.value = '';
+                hideTagDropdown();
+            }
+        }
+
+        function addTagFromInput() {
+            addNewTag();
+        }
+
+        function removeTag(tagName) {
+            selectedTags = selectedTags.filter(tag => tag !== tagName);
+            renderTagContainer();
+        }
+
+        function renderTagContainer() {
+            const container = document.getElementById('tagContainer');
+            container.innerHTML = selectedTags.map(tag => `
+                <span class="tag" onclick="filterByTag('${tag}')">
+                    ${tag}
+                    <span class="tag-remove" onclick="event.stopPropagation(); removeTag('${tag}')">&times;</span>
+                </span>
+            `).join('');
+        }
+
+        function updateTagHistory(tagName) {
+            tagHistory[tagName] = Date.now();
+            saveTagHistory();
+        }
+
+        async function saveTagHistory() {
+            if (window.electronAPI) {
+                await window.electronAPI.saveTagHistory(tagHistory);
+            } else {
+                localStorage.setItem('tagHistory', JSON.stringify(tagHistory));
+            }
+        }
+
+        async function loadTagHistory() {
+            if (window.electronAPI) {
+                const result = await window.electronAPI.loadTagHistory();
+                if (result.success) {
+                    tagHistory = result.data;
+                }
+            } else {
+                const saved = localStorage.getItem('tagHistory');
+                if (saved) {
+                    tagHistory = JSON.parse(saved);
+                }
+            }
+        }
+
+        function updateTagFilterDropdown() {
+            const dropdown = document.getElementById('filterTag');
+            const allTags = new Set();
+            
+            softwareData.forEach(software => {
+                if (software.tags) {
+                    software.tags.forEach(tag => allTags.add(tag));
+                }
+            });
+            
+            const sortedTags = Array.from(allTags).sort();
+            
+            dropdown.innerHTML = '<option value="">全部标签</option>';
+            sortedTags.forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag;
+                option.textContent = tag;
+                dropdown.appendChild(option);
+            });
+        }
+
+        function getRecentTags() {
+            const allTags = Object.keys(tagHistory);
+            allTags.sort((a, b) => tagHistory[b] - tagHistory[a]);
+            return allTags.slice(0, 50);
+        }
+
+        function getAllTagsWithCount() {
+            const tagCount = {};
+            softwareData.forEach(software => {
+                if (software.tags) {
+                    software.tags.forEach(tag => {
+                        tagCount[tag] = (tagCount[tag] || 0) + 1;
+                    });
+                }
+            });
+            Object.keys(tagHistory).forEach(tag => {
+                if (!tagCount[tag]) {
+                    tagCount[tag] = 0;
+                }
+            });
+            return tagCount;
+        }
+
+        function showTagDropdown(inputId, dropdownId) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+            const recentTags = getRecentTags();
+            const currentTags = inputId === 'newTagInput' ? selectedTags : editSelectedTags;
+            
+            if (recentTags.length === 0) {
+                dropdown.innerHTML = '<div class="tag-dropdown-empty">暂无使用过的标签</div>';
+            } else {
+                dropdown.innerHTML = recentTags.map(tag => `
+                    <div class="tag-dropdown-item ${currentTags.includes(tag) ? 'selected' : ''}" 
+                         onclick="selectTagFromDropdown('${tag}', '${inputId}', '${dropdownId}')">
+                        <span>${tag}</span>
+                        <span class="added-icon">✓</span>
+                    </div>
+                `).join('');
+            }
+            
+            dropdown.classList.add('active');
+        }
+
+        function hideTagDropdown() {
+            document.querySelectorAll('.tag-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('active');
+            });
+        }
+
+        function selectTagFromDropdown(tagName, inputId, dropdownId) {
+            const input = document.getElementById(inputId);
+            const currentTags = inputId === 'newTagInput' ? selectedTags : editSelectedTags;
+            
+            if (!currentTags.includes(tagName)) {
+                currentTags.push(tagName);
+                updateTagHistory(tagName);
+                if (inputId === 'newTagInput') {
+                    renderTagContainer();
+                } else {
+                    renderEditTagContainer();
+                }
+            }
+            
+            input.value = '';
+            hideTagDropdown();
+        }
+
+        function openTagManager() {
+            isEditTagManager = false;
+            tagManagerSelectedTags = [...selectedTags];
+            showTagManagerModal();
+        }
+
+        function openEditTagManager() {
+            isEditTagManager = true;
+            tagManagerSelectedTags = [...editSelectedTags];
+            showTagManagerModal();
+        }
+
+        function showTagManagerModal() {
+            const modal = document.getElementById('tagManagerModal');
+            const searchInput = document.getElementById('tagManagerSearch');
+            const sortSelect = document.getElementById('tagManagerSort');
+            searchInput.value = '';
+            sortSelect.value = 'name';
+            tagManagerSelectedTags = [];
+            renderTagManagerGrid('', 'name');
+            modal.classList.add('active');
+        }
+
+        function closeTagManager() {
+            document.getElementById('tagManagerModal').classList.remove('active');
+        }
+
+        function renderTagManagerGrid(searchTerm, sortBy) {
+            const grid = document.getElementById('tagManagerGrid');
+            const tagCount = getAllTagsWithCount();
+            let allTags = Object.keys(tagCount);
+            
+            if (sortBy === 'name') {
+                allTags.sort();
+            } else if (sortBy === 'count') {
+                allTags.sort((a, b) => tagCount[b] - tagCount[a]);
+            }
+            
+            const filteredTags = allTags.filter(tag => 
+                tag.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            
+            if (filteredTags.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: #999;">暂无标签</div>';
+            } else {
+                grid.innerHTML = filteredTags.map(tag => `
+                    <div class="tag-manager-item ${tagManagerSelectedTags.includes(tag) ? 'selected' : ''}" 
+                         onclick="toggleTagManagerSelection('${tag}')">
+                        <span class="tag-name">${tag}</span>
+                        <span class="tag-count">${tagCount[tag]} 个软件</span>
+                        <span class="tag-manager-added-icon" style="position: absolute; top: 8px; right: 8px; opacity: ${tagManagerSelectedTags.includes(tag) ? '1' : '0'}; transition: opacity 0.2s; color: ${tagManagerSelectedTags.includes(tag) ? 'white' : '#667eea'}; font-size: 18px;">✓</span>
+                    </div>
+                `).join('');
+            }
+            
+            updateDeleteButton();
+        }
+
+        function toggleTagManagerSelection(tagName) {
+            const index = tagManagerSelectedTags.indexOf(tagName);
+            if (index > -1) {
+                tagManagerSelectedTags.splice(index, 1);
+            } else {
+                tagManagerSelectedTags.push(tagName);
+                updateTagHistory(tagName);
+            }
+            renderTagManagerGrid(document.getElementById('tagManagerSearch').value, document.getElementById('tagManagerSort').value);
+        }
+
+        function updateDeleteButton() {
+            const deleteBtn = document.getElementById('tagManagerDeleteBtn');
+            if (tagManagerSelectedTags.length > 0) {
+                deleteBtn.style.display = 'block';
+                deleteBtn.textContent = `🗑️ 删除 (${tagManagerSelectedTags.length})`;
+            } else {
+                deleteBtn.style.display = 'none';
+            }
+        }
+
+        function deleteSelectedTags() {
+            if (tagManagerSelectedTags.length === 0) return;
+            
+            if (!confirm(`确定要删除选中的 ${tagManagerSelectedTags.length} 个标签吗？这将从所有软件中移除这些标签。`)) {
+                return;
+            }
+            
+            tagManagerSelectedTags.forEach(tag => {
+                softwareData.forEach(software => {
+                    if (software.tags) {
+                        software.tags = software.tags.filter(t => t !== tag);
+                    }
+                });
+                delete tagHistory[tag];
+            });
+            
+            saveTagHistory();
+            saveData();
+            updateTagFilterDropdown();
+            renderSoftwareList();
+            tagManagerSelectedTags = [];
+            renderTagManagerGrid(document.getElementById('tagManagerSearch').value, document.getElementById('tagManagerSort').value);
+        }
+
+        function deleteAllTags() {
+            const allTags = new Set();
+            
+            softwareData.forEach(software => {
+                if (software.tags) {
+                    software.tags.forEach(tag => allTags.add(tag));
+                }
+            });
+            
+            Object.keys(tagHistory).forEach(tag => allTags.add(tag));
+            
+            if (allTags.size === 0) {
+                showToast('没有标签可以删除', true);
+                return;
+            }
+            
+            if (!confirm(`确定要删除所有 ${allTags.size} 个标签吗？这将从所有软件中移除所有标签。`)) {
+                return;
+            }
+            
+            softwareData.forEach(software => {
+                software.tags = [];
+            });
+            tagHistory = {};
+            
+            saveTagHistory();
+            saveData();
+            updateTagFilterDropdown();
+            renderSoftwareList();
+            tagManagerSelectedTags = [];
+            renderTagManagerGrid(document.getElementById('tagManagerSearch').value, document.getElementById('tagManagerSort').value);
+        }
+
+        function confirmTagManagerSelection() {
+            if (isEditTagManager) {
+                editSelectedTags = [...tagManagerSelectedTags];
+                renderEditTagContainer();
+            } else {
+                selectedTags = [...tagManagerSelectedTags];
+                renderTagContainer();
+            }
+            closeTagManager();
+        }
+
+        function filterByTag(tag) {
+            document.getElementById('searchInput').value = tag;
+            renderSoftwareList();
+        }
+
+        function getAllTags() {
+            const allTags = new Set();
+            softwareData.forEach(software => {
+                if (software.tags) {
+                    software.tags.forEach(tag => allTags.add(tag));
+                }
+            });
+            return Array.from(allTags);
+        }
+
+        function displayRating(rating) {
+            if (!rating || rating === 0) return '';
+            let stars = '';
+            for (let i = 0; i < 5; i++) {
+                stars += i < rating ? '★' : '☆';
+            }
+            return stars;
+        }
+
+        function initEditRating() {
+            const stars = document.querySelectorAll('.edit-star');
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    editCurrentRating = parseInt(this.dataset.value);
+                    document.getElementById('editRatingValue').value = editCurrentRating;
+                    updateEditStarsDisplay();
+                });
+
+                star.addEventListener('mouseover', function() {
+                    const hoverValue = parseInt(this.dataset.value);
+                    updateEditStarsHover(hoverValue);
+                });
+
+                star.addEventListener('mouseout', function() {
+                    updateEditStarsDisplay();
+                });
+            });
+        }
+
+        function updateEditStarsDisplay() {
+            const stars = document.querySelectorAll('.edit-star');
+            stars.forEach((star, index) => {
+                if (index < editCurrentRating) {
+                    star.classList.add('active');
+                    star.textContent = '★';
+                } else {
+                    star.classList.remove('active');
+                    star.textContent = '☆';
+                }
+                star.classList.remove('hover');
+            });
+        }
+
+        function updateEditStarsHover(value) {
+            const stars = document.querySelectorAll('.edit-star');
+            stars.forEach((star, index) => {
+                if (index < value) {
+                    star.classList.add('hover');
+                    star.textContent = '★';
+                } else {
+                    star.classList.remove('hover');
+                    if (index < editCurrentRating) {
+                        star.classList.add('active');
+                        star.textContent = '★';
+                    } else {
+                        star.classList.remove('active');
+                        star.textContent = '☆';
+                    }
+                }
+            });
+        }
+
+        function addEditNewTag() {
+            const input = document.getElementById('editNewTagInput');
+            const tagName = input.value.trim();
+            
+            if (tagName && !editSelectedTags.includes(tagName)) {
+                editSelectedTags.push(tagName);
+                updateTagHistory(tagName);
+                renderEditTagContainer();
+                input.value = '';
+                hideTagDropdown();
+            }
+        }
+
+        function addEditTagFromInput() {
+            addEditNewTag();
+        }
+
+        function removeEditTag(tagName) {
+            editSelectedTags = editSelectedTags.filter(tag => tag !== tagName);
+            renderEditTagContainer();
+        }
+
+        function renderEditTagContainer() {
+            const container = document.getElementById('editTagContainer');
+            container.innerHTML = editSelectedTags.map(tag => `
+                <span class="tag">
+                    ${tag}
+                    <span class="tag-remove" onclick="removeEditTag('${tag}')">&times;</span>
+                </span>
+            `).join('');
+        }
+
+        function toggleEditFileInput() {
+            const installType = document.getElementById('editInstallType').value;
+            const selectFileBtn = document.getElementById('editSelectFileBtn');
+            const pathLabel = document.getElementById('editPathLabel');
+            const installPath = document.getElementById('editInstallPath');
+
+            if (installType === 'local') {
+                selectFileBtn.classList.remove('hidden');
+                pathLabel.textContent = '安装包位置 *';
+                installPath.placeholder = '点击选择文件按钮选择安装包';
+            } else if (installType === 'online') {
+                selectFileBtn.classList.add('hidden');
+                pathLabel.textContent = '下载链接 *';
+                installPath.placeholder = '请输入下载链接';
+            } else {
+                selectFileBtn.classList.add('hidden');
+                pathLabel.textContent = '安装包位置/下载链接 *';
+                installPath.placeholder = '请先选择安装方式';
+            }
+        }
+
+        function handleEditFileSelect() {
+            if (window.electronAPI) {
+                window.electronAPI.selectFile().then(filePath => {
+                    if (filePath) {
+                        document.getElementById('editInstallPath').value = filePath;
+                        
+                        const softwareNameInput = document.getElementById('editSoftwareName');
+                        if (!softwareNameInput.value.trim()) {
+                            const fileName = extractFileName(filePath);
+                            softwareNameInput.value = fileName;
+                        }
+                    }
+                });
+            } else {
+                const path = prompt('请输入文件完整路径：\n例如：E:\\ABC\\123.zip');
+                if (path) {
+                    document.getElementById('editInstallPath').value = path;
+                    
+                    const softwareNameInput = document.getElementById('editSoftwareName');
+                    if (!softwareNameInput.value.trim()) {
+                        const fileName = extractFileName(path);
+                        softwareNameInput.value = fileName;
+                    }
+                }
+            }
+        }
+
+        function handleEditMdFileSelect() {
+            if (window.electronAPI) {
+                window.electronAPI.selectMdFile().then(filePath => {
+                    if (filePath) {
+                        document.getElementById('editMdFilePath').value = filePath;
+                    }
+                });
+            } else {
+                const path = prompt('请输入 MD 文件完整路径：\n例如：E:\\ABC\\readme.md');
+                if (path) {
+                    document.getElementById('editMdFilePath').value = path;
+                }
+            }
+        }
+
+        function openEditModal(id) {
+            const software = softwareData.find(s => s.id == id);
+            if (!software) return;
+            
+            editingSoftwareId = software.id;
+            
+            document.getElementById('editSoftwareName').value = software.name;
+            document.getElementById('editSoftwareVersion').value = software.version || '';
+            document.getElementById('editInstallType').value = software.installType;
+            document.getElementById('editInstallPath').value = software.installPath;
+            document.getElementById('editCategory').value = software.category || '';
+            document.getElementById('editInstallNotes').value = software.installNotes || '';
+            document.getElementById('editMdFilePath').value = software.mdFilePath || '';
+            document.getElementById('editPersonalNote').value = software.personalNote || '';
+            document.getElementById('editIsInstalled').checked = software.installed || false;
+            document.getElementById('editIsFavorite').checked = software.favorite || false;
+            
+            editSelectedTags = software.tags ? [...software.tags] : [];
+            editCurrentRating = software.rating || 0;
+            updateEditStarsDisplay();
+            renderEditTagContainer();
+            
+            toggleEditFileInput();
+            
+            document.getElementById('editModal').classList.add('active');
+            activeModalCount++;
+            document.body.classList.add('modal-open');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            activeModalCount--;
+            if (activeModalCount === 0) {
+                document.body.classList.remove('modal-open');
+            }
+            editingSoftwareId = null;
+            editSelectedTags = [];
+            editCurrentRating = 0;
+        }
+
+        initRating();
+        initEditRating();
+
+        document.getElementById('newTagInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addNewTag();
+            }
+        });
+
+        document.getElementById('editNewTagInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addEditNewTag();
+            }
+        });
+
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const installType = document.getElementById('editInstallType').value;
+            const installPath = document.getElementById('editInstallPath').value;
+            
+            let folderPath = '';
+            if (installType === 'local' && installPath) {
+                const lastBackslash = installPath.lastIndexOf('\\');
+                const lastSlash = installPath.lastIndexOf('/');
+                
+                if (lastBackslash > 0) {
+                    folderPath = installPath.substring(0, lastBackslash);
+                } else if (lastSlash > 0) {
+                    folderPath = installPath.substring(0, lastSlash);
+                }
+            }
+            
+            const softwareIndex = softwareData.findIndex(s => s.id === editingSoftwareId);
+            if (softwareIndex !== -1) {
+                softwareData[softwareIndex] = {
+                    ...softwareData[softwareIndex],
+                    name: document.getElementById('editSoftwareName').value,
+                    version: document.getElementById('editSoftwareVersion').value,
+                    installType: installType,
+                    installPath: installPath,
+                    folderPath: folderPath || installPath,
+                    category: document.getElementById('editCategory').value,
+                    installNotes: document.getElementById('editInstallNotes').value,
+                    mdFilePath: document.getElementById('editMdFilePath').value,
+                    tags: [...editSelectedTags],
+                    rating: editCurrentRating,
+                    personalNote: document.getElementById('editPersonalNote').value,
+                    installed: document.getElementById('editIsInstalled').checked,
+                    favorite: document.getElementById('editIsFavorite').checked
+                };
+                
+                editSelectedTags.forEach(tag => updateTagHistory(tag));
+                
+                saveData();
+                updateTagFilterDropdown();
+                renderSoftwareList();
+                showToast('软件更新成功！');
+            }
+            closeEditModal();
+        });
+
+        async function loadAppData() {
+            if (window.electronAPI) {
+                const result = await window.electronAPI.loadData();
+                if (result.success) {
+                    softwareData = result.data;
+                } else {
+                    softwareData = [];
+                    if (result.message) {
+                        showToast('加载数据失败: ' + result.message, true);
+                    }
+                }
+            } else {
+                softwareData = JSON.parse(localStorage.getItem('softwareData')) || [];
+            }
+            
+            softwareData.forEach(software => {
+                if (software.tags) {
+                    software.tags.forEach(tag => {
+                        if (!tagHistory[tag]) {
+                            tagHistory[tag] = Date.now();
+                        }
+                    });
+                }
+            });
+            saveTagHistory();
+            
+            updateStats();
+            updateTagFilterDropdown();
+            renderSoftwareList();
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = 'toast' + (isError ? ' error' : '');
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 2000);
+        }
+
+        function toggleFileInput() {
+            const installType = document.getElementById('installType').value;
+            const selectFileBtn = document.getElementById('selectFileBtn');
+            const pathLabel = document.getElementById('pathLabel');
+            const installPath = document.getElementById('installPath');
+
+            if (installType === 'local') {
+                selectFileBtn.classList.remove('hidden');
+                pathLabel.textContent = '安装包位置 *';
+                installPath.placeholder = '点击选择文件按钮选择安装包';
+            } else if (installType === 'online') {
+                selectFileBtn.classList.add('hidden');
+                pathLabel.textContent = '下载链接 *';
+                installPath.placeholder = '请输入下载链接';
+            } else {
+                selectFileBtn.classList.add('hidden');
+                pathLabel.textContent = '安装包位置/下载链接 *';
+                installPath.placeholder = '请先选择安装方式';
+            }
+        }
+
+        let pendingIconId = null;
+
+        function extractFileName(filePath) {
+            const parts = filePath.split(/[/\\]/);
+            const fileNameWithExt = parts[parts.length - 1];
+            const lastDotIndex = fileNameWithExt.lastIndexOf('.');
+            if (lastDotIndex > 0) {
+                return fileNameWithExt.substring(0, lastDotIndex);
+            }
+            return fileNameWithExt;
+        }
+
+        function handleFileSelect() {
+            if (window.electronAPI) {
+                window.electronAPI.selectFile().then(filePath => {
+                    if (filePath) {
+                        document.getElementById('installPath').value = filePath;
+                        
+                        const softwareNameInput = document.getElementById('softwareName');
+                        if (!softwareNameInput.value.trim()) {
+                            const fileName = extractFileName(filePath);
+                            softwareNameInput.value = fileName;
+                        }
+                        
+                        if (filePath.toLowerCase().endsWith('.exe')) {
+                            pendingIconId = Date.now();
+                            extractAndSaveIcon(filePath, pendingIconId).then(() => {
+                                console.log('Icon pre-extracted for:', filePath);
+                            }).catch(error => {
+                                console.error('Failed to pre-extract icon:', error);
+                            });
+                        }
+                    }
+                });
+            } else {
+                const path = prompt('请输入文件完整路径：\n例如：E:\\ABC\\123.zip');
+                if (path) {
+                    document.getElementById('installPath').value = path;
+                    
+                    const softwareNameInput = document.getElementById('softwareName');
+                    if (!softwareNameInput.value.trim()) {
+                        const fileName = extractFileName(path);
+                        softwareNameInput.value = fileName;
+                    }
+                }
+            }
+        }
+
+        function handleMdFileSelect() {
+            if (window.electronAPI) {
+                window.electronAPI.selectMdFile().then(filePath => {
+                    if (filePath) {
+                        document.getElementById('mdFilePath').value = filePath;
+                    }
+                });
+            } else {
+                const path = prompt('请输入 MD 文件完整路径：\n例如：E:\\ABC\\readme.md');
+                if (path) {
+                    document.getElementById('mdFilePath').value = path;
+                }
+            }
+        }
+
+        document.getElementById('softwareForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const installType = document.getElementById('installType').value;
+            const installPath = document.getElementById('installPath').value;
+            
+            let folderPath = '';
+            if (installType === 'local' && installPath) {
+                const lastBackslash = installPath.lastIndexOf('\\');
+                const lastSlash = installPath.lastIndexOf('/');
+                
+                if (lastBackslash > 0) {
+                    folderPath = installPath.substring(0, lastBackslash);
+                } else if (lastSlash > 0) {
+                    folderPath = installPath.substring(0, lastSlash);
+                }
+            }
+            
+            const softwareId = pendingIconId || Date.now();
+            
+            const software = {
+                id: softwareId,
+                name: document.getElementById('softwareName').value,
+                version: document.getElementById('softwareVersion').value,
+                installType: installType,
+                installPath: installPath,
+                folderPath: folderPath || installPath,
+                category: document.getElementById('category').value,
+                installNotes: document.getElementById('installNotes').value,
+                mdFilePath: document.getElementById('mdFilePath').value,
+                tags: [...selectedTags],
+                rating: currentRating,
+                personalNote: document.getElementById('personalNote').value,
+                installed: document.getElementById('isInstalled').checked,
+                favorite: document.getElementById('isFavorite').checked,
+                createdAt: new Date().toLocaleString('zh-CN')
+            };
+
+            softwareData.push(software);
+            
+            selectedTags.forEach(tag => updateTagHistory(tag));
+            
+            const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (installType === 'local' && installPath.toLowerCase().endsWith('.exe') && !pendingIconId) {
+                extractAndSaveIcon(installPath, software.id).catch(error => {
+                    console.error('Failed to extract icon:', error);
+                });
+            }
+            
+            pendingIconId = null;
+            
+            saveData();
+            updateTagFilterDropdown();
+            renderSoftwareList();
+            
+            window.scrollTo(0, scrollPosition);
+            
+            this.reset();
+            document.getElementById('isInstalled').checked = false;
+            document.getElementById('isFavorite').checked = false;
+            selectedTags = [];
+            currentRating = 0;
+            updateStarsDisplay();
+            renderTagContainer();
+            document.getElementById('selectFileBtn').classList.add('hidden');
+            document.getElementById('pathLabel').textContent = '安装包位置/下载链接 *';
+            document.getElementById('installPath').placeholder = '请先选择安装方式';
+            
+            showToast('软件添加成功！');
+            
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const softwareNameInput = document.getElementById('softwareName');
+                    if (softwareNameInput) {
+                        softwareNameInput.focus();
+                    }
+                });
+            });
+        });
+
+        function editSoftware(id) {
+            openEditModal(id);
+        }
+
+        const iconCache = new Map();
+
+        async function extractAndSaveIcon(exePath, softwareId) {
+            if (!window.electronAPI) return;
+            
+            try {
+                const result = await window.electronAPI.extractIcon(exePath, softwareId);
+                if (result.success) {
+                    console.log('Icon extracted successfully');
+                    iconCache.delete(softwareId);
+                }
+            } catch (error) {
+                console.error('Failed to extract icon:', error);
+            }
+        }
+
+        async function getSoftwareIcon(software) {
+            if (software.installType === 'online') {
+                return '🌐';
+            }
+            
+            const ext = software.installPath.split('.').pop().toLowerCase();
+            
+            if (ext === 'exe' && window.electronAPI) {
+                const cacheKey = software.id;
+                
+                if (iconCache.has(cacheKey)) {
+                    const cachedPath = iconCache.get(cacheKey);
+                    if (cachedPath) {
+                        return `<img src="file://${cachedPath}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='⚙️'">`;
+                    }
+                }
+                
+                try {
+                    const iconPath = await window.electronAPI.getIconPath(software.id);
+                    if (iconPath) {
+                        iconCache.set(cacheKey, iconPath);
+                        return `<img src="file://${iconPath}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='⚙️'">`;
+                    }
+                } catch (error) {
+                    console.error('Failed to get icon:', error);
+                }
+            }
+            
+            return getFileIcon(software.installType, software.installPath);
+        }
+
+        function getFileIcon(installType, installPath) {
+            if (installType === 'online') {
+                return '🌐';
+            }
+            
+            const ext = installPath.split('.').pop().toLowerCase();
+            
+            const iconMap = {
+                'exe': '⚙️',
+                'msi': '⚙️',
+                'bat': '🔧',
+                'cmd': '🔧',
+                'ps1': '🔧',
+                'sh': '🔧',
+                'zip': '📦',
+                '7z': '📦',
+                'rar': '📦',
+                'tar': '📦',
+                'gz': '📦',
+                'bz2': '📦',
+                'xz': '📦',
+                'pdf': '📄',
+                'doc': '📝',
+                'docx': '📝',
+                'xls': '📊',
+                'xlsx': '📊',
+                'ppt': '📽️',
+                'pptx': '📽️',
+                'txt': '📃',
+                'md': '📑',
+                'rtf': '📝',
+                'odt': '📝',
+                'ods': '📊',
+                'odp': '📽️',
+                'json': '📋',
+                'xml': '📋',
+                'yaml': '📋',
+                'yml': '📋',
+                'toml': '📋',
+                'ini': '⚙️',
+                'cfg': '⚙️',
+                'conf': '⚙️',
+                'log': '📜',
+                'html': '🌐',
+                'htm': '🌐',
+                'css': '🎨',
+                'js': '⚡',
+                'ts': '⚡',
+                'jsx': '⚛️',
+                'tsx': '⚛️',
+                'vue': '💚',
+                'py': '🐍',
+                'java': '☕',
+                'c': '💻',
+                'cpp': '💻',
+                'h': '💻',
+                'hpp': '💻',
+                'cs': '💻',
+                'go': '🐹',
+                'rs': '🦀',
+                'php': '🐘',
+                'rb': '💎',
+                'swift': '🍎',
+                'kt': '📱',
+                'sql': '🗃️',
+                'db': '🗃️',
+                'sqlite': '🗃️',
+                'jpg': '🖼️',
+                'jpeg': '🖼️',
+                'png': '🖼️',
+                'gif': '🖼️',
+                'bmp': '🖼️',
+                'svg': '🎨',
+                'ico': '🖼️',
+                'webp': '🖼️',
+                'mp3': '🎵',
+                'wav': '🎵',
+                'flac': '🎵',
+                'aac': '🎵',
+                'ogg': '🎵',
+                'wma': '🎵',
+                'mp4': '🎬',
+                'avi': '🎬',
+                'mkv': '🎬',
+                'mov': '🎬',
+                'wmv': '🎬',
+                'flv': '🎬',
+                'webm': '🎬',
+                'iso': '💿',
+                'img': '💿',
+                'dmg': '🍎',
+                'apk': '📱',
+                'ipa': '📱',
+                'deb': '🐧',
+                'rpm': '🐧',
+                'appimage': '🐧',
+                'torrent': '🔗',
+                'magnet': '🧲'
+            };
+            
+            return iconMap[ext] || '📁';
+        }
+
+        let searchKeyword = '';
+        let sortBy = '';
+        let filterCategory = '';
+        let filterInstallType = '';
+        let filterTag = '';
+
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            searchKeyword = e.target.value.toLowerCase();
+            renderSoftwareList();
+        });
+
+        document.getElementById('sortBy').addEventListener('change', function(e) {
+            sortBy = e.target.value;
+            renderSoftwareList();
+        });
+
+        document.getElementById('filterCategory').addEventListener('change', function(e) {
+            filterCategory = e.target.value;
+            renderSoftwareList();
+        });
+
+        document.getElementById('filterInstallType').addEventListener('change', function(e) {
+            filterInstallType = e.target.value;
+            renderSoftwareList();
+        });
+
+        document.getElementById('filterInstalled').addEventListener('change', function(e) {
+            filterInstalled = e.target.value;
+            renderSoftwareList();
+        });
+
+        document.getElementById('filterFavorite').addEventListener('change', function(e) {
+            filterFavorite = e.target.value;
+            renderSoftwareList();
+        });
+
+        document.getElementById('filterTag').addEventListener('change', function(e) {
+            filterTag = e.target.value;
+            renderSoftwareList();
+        });
+
+        async function saveData() {
+            if (window.electronAPI) {
+                const result = await window.electronAPI.saveData(softwareData);
+                if (!result.success) {
+                    showToast('保存失败: ' + result.message, true);
+                }
+            } else {
+                localStorage.setItem('softwareData', JSON.stringify(softwareData));
+            }
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('totalCount').textContent = softwareData.length;
+            document.getElementById('favoriteCount').textContent = softwareData.filter(s => s.favorite).length;
+            document.getElementById('onlineCount').textContent = softwareData.filter(s => s.installType === 'online').length;
+            document.getElementById('localCount').textContent = softwareData.filter(s => s.installType === 'local').length;
+        }
+
+        function renderSoftwareList() {
+            const container = document.getElementById('softwareList');
+            
+            let filteredData = softwareData;
+            
+            if (filterCategory) {
+                filteredData = filteredData.filter(software => software.category === filterCategory);
+            }
+            
+            if (filterInstallType) {
+                filteredData = filteredData.filter(software => software.installType === filterInstallType);
+            }
+
+            if (filterInstalled) {
+                const isInstalled = filterInstalled === 'true';
+                filteredData = filteredData.filter(software => software.installed === isInstalled);
+            }
+            
+            if (filterFavorite) {
+                const isFavorite = filterFavorite === 'true';
+                filteredData = filteredData.filter(software => software.favorite === isFavorite);
+            }
+
+            if (filterTag) {
+                filteredData = filteredData.filter(software => 
+                    software.tags && software.tags.includes(filterTag)
+                );
+            }
+            
+            if (searchKeyword) {
+                filteredData = filteredData.filter(software => {
+                    const nameMatch = software.name.toLowerCase().includes(searchKeyword);
+                    const categoryMatch = software.category ? software.category.toLowerCase().includes(searchKeyword) : false;
+                    const versionMatch = software.version ? software.version.toLowerCase().includes(searchKeyword) : false;
+                    const installTypeMatch = software.installType === 'online' ? 
+                        ('在线安装'.includes(searchKeyword) || 'online'.includes(searchKeyword)) : 
+                        ('本地安装'.includes(searchKeyword) || 'local'.includes(searchKeyword));
+                    const tagMatch = software.tags ? software.tags.some(tag => tag.toLowerCase().includes(searchKeyword)) : false;
+                    return nameMatch || categoryMatch || versionMatch || installTypeMatch || tagMatch;
+                });
+            }
+            
+            if (sortBy) {
+                filteredData = filteredData.sort((a, b) => {
+                    switch(sortBy) {
+                        case 'favorite-first':
+                            if (a.favorite && !b.favorite) return -1;
+                            if (!a.favorite && b.favorite) return 1;
+                            return a.id - b.id;
+                        case 'name-asc':
+                            return a.name.localeCompare(b.name, 'zh-CN');
+                        case 'name-desc':
+                            return b.name.localeCompare(a.name, 'zh-CN');
+                        case 'time-new':
+                            return new Date(b.createdAt) - new Date(a.createdAt);
+                        case 'time-old':
+                            return new Date(a.createdAt) - new Date(b.createdAt);
+                        case 'category':
+                            return (a.category || '').localeCompare(b.category || '', 'zh-CN');
+                        case 'installType':
+                            return a.installType.localeCompare(b.installType);
+                        case 'rating-desc':
+                            return (b.rating || 0) - (a.rating || 0);
+                        case 'rating-asc':
+                            return (a.rating || 0) - (b.rating || 0);
+                        default:
+                            return 0;
+                    }
+                });
+            } else {
+                filteredData = filteredData.sort((a, b) => a.id - b.id);
+            }
+            
+            if (filteredData.length === 0) {
+                if (searchKeyword || filterCategory || filterInstallType || filterInstalled || filterFavorite || filterTag) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                            </svg>
+                            <h3>未找到匹配的软件</h3>
+                            <p>尝试调整搜索条件或筛选条件</p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
+                            </svg>
+                            <h3>还没有添加任何软件</h3>
+                            <p>在上方表单中添加您的第一个软件</p>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            container.innerHTML = filteredData.map(software => `
+                <div class="software-card" data-id="${software.id}">
+                    <div class="software-header">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" class="software-checkbox" data-id="${software.id}" onchange="updateBatchDeleteButton()">
+                            <span id="icon-${software.id}" class="software-icon">${getFileIcon(software.installType, software.installPath)}</span>
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div class="software-name">${software.name}</div>
+                                    <span onclick="toggleFavorite('${software.id}')" class="favorite-star" data-favorite="${software.favorite}" style="font-size: 20px; cursor: pointer; user-select: none; transition: all 0.2s;">${software.favorite ? '⭐' : '☆'}</span>
+                                </div>
+                                ${software.rating && software.rating > 0 ? `<div class="software-rating">${displayRating(software.rating)}</div>` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            ${software.version ? `<span style="color: #888;">v${software.version}</span>` : ''}
+                            ${software.installed ? `<span onclick="toggleInstalled('${software.id}')" style="background: #2ecc71; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✅ 已安装</span>` : `<span onclick="toggleInstalled('${software.id}')" style="background: #95a5a6; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">⬜ 未安装</span>`}
+                            ${software.category ? `<span style="background: #667eea; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">${software.category}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="software-info">
+                        <div class="info-item">
+                            <div class="info-label">安装方式</div>
+                            <div class="info-value ${software.installType}">${software.installType === 'online' ? '🌐 在线安装' : '💾 本地安装'}</div>
+                        </div>
+                        ${software.installType === 'local' ? `
+                            <div class="info-item">
+                                <div class="info-label">安装包文件</div>
+                                <div class="info-value">${software.installPath}</div>
+                            </div>
+                        ` : `
+                            <div class="info-item">
+                                <div class="info-label">下载链接</div>
+                                <div class="info-value">${software.installPath}</div>
+                            </div>
+                        `}
+                        <div class="info-item">
+                            <div class="info-label">添加时间</div>
+                            <div class="info-value">${software.createdAt}</div>
+                        </div>
+                    </div>
+                    ${software.personalNote ? `<div class="software-note">💬 ${software.personalNote}</div>` : ''}
+                    <div class="software-footer">
+                        <div class="software-actions">
+                            ${(software.installNotes || software.mdFilePath) ? `<button class="btn btn-info" data-id="${software.id}" onclick="showInstallNotes('${software.id}')">📋 查看说明</button>` : ''}
+                            <button class="btn btn-warning" onclick="editSoftware('${software.id}')">✏️ 编辑</button>
+                            ${software.installType === 'local' ? `<button class="btn btn-success" data-id="${software.id}" onclick="openPathById('${software.id}')">📂 打开位置</button>` : ''}
+                            ${software.installType === 'online' ? `<button class="btn btn-success" data-id="${software.id}" onclick="openLink('${software.installPath}')">🔗 打开链接</button>` : ''}
+                            <button class="btn btn-danger" onclick="deleteSoftware('${software.id}')">🗑️ 删除</button>
+                        </div>
+                        <div class="software-tags">
+                            ${software.tags && software.tags.length > 0 ? software.tags.map(tag => `<span class="software-tag" onclick="filterByTag('${tag}')">${tag}</span>`).join('') : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            isAllSelected = false;
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            if (selectAllBtn) {
+                selectAllBtn.textContent = '☑️ 全选';
+            }
+            
+            filteredData.forEach(async (software) => {
+                if (software.installType === 'local' && software.installPath.toLowerCase().endsWith('.exe')) {
+                    const iconHtml = await getSoftwareIcon(software);
+                    const iconElement = document.getElementById(`icon-${software.id}`);
+                    if (iconElement && iconHtml !== getFileIcon(software.installType, software.installPath)) {
+                        iconElement.innerHTML = iconHtml;
+                    }
+                }
+            });
+            
+            updateBatchDeleteButton();
+        }
+
+        let currentSoftwareId = null;
+
+        let activeModalCount = 0;
+
+        function showInstallNotes(id) {
+            const software = softwareData.find(s => s.id == id);
+            if (!software) return;
+            
+            currentSoftwareId = id;
+            
+            if (software.installNotes) {
+                document.getElementById('modalContent').innerHTML = `
+                    <strong>${software.name}</strong>
+                    <p style="margin-top: 15px; white-space: pre-wrap;">${software.installNotes}</p>
+                `;
+                document.getElementById('installModal').classList.add('active');
+                openModal();
+                
+                if (software.mdFilePath) {
+                    document.getElementById('mdButtonContainer').style.display = 'block';
+                    document.getElementById('viewMdBtn').onclick = function() {
+                        closeModal();
+                        showMdDocument(id);
+                    };
+                } else {
+                    document.getElementById('mdButtonContainer').style.display = 'none';
+                }
+            } else if (software.mdFilePath) {
+                showMdDocument(id);
+            }
+        }
+
+        async function showMdDocument(id) {
+            const software = softwareData.find(s => s.id == id);
+            if (!software || !software.mdFilePath) return;
+            
+            currentSoftwareId = id;
+            
+            try {
+                let mdContent = '';
+                
+                if (window.electronAPI) {
+                    const result = await window.electronAPI.readFile(software.mdFilePath);
+                    if (result.success) {
+                        mdContent = result.content;
+                    } else {
+                        showToast('读取 MD 文件失败：' + result.message, true);
+                        return;
+                    }
+                } else {
+                    showToast('非 Electron 环境，无法读取文件', true);
+                    return;
+                }
+                
+                const htmlContent = marked.parse(mdContent);
+                document.getElementById('mdContent').innerHTML = htmlContent;
+                document.getElementById('mdModal').classList.add('active');
+                openModal();
+                
+                if (software.installNotes) {
+                    document.getElementById('viewTextBtn').onclick = function() {
+                        closeMdModal();
+                        showInstallNotes(id);
+                    };
+                    document.getElementById('viewTextBtn').style.display = 'inline-block';
+                } else {
+                    document.getElementById('viewTextBtn').style.display = 'none';
+                }
+            } catch (error) {
+                showToast('解析 MD 文件失败：' + error.message, true);
+            }
+        }
+
+        function openModal() {
+            activeModalCount++;
+            if (activeModalCount === 1) {
+                document.body.classList.add('modal-open');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('installModal').classList.remove('active');
+            closeModalHelper();
+        }
+
+        function closeMdModal() {
+            document.getElementById('mdModal').classList.remove('active');
+            closeModalHelper();
+        }
+
+        async function changeMdFile() {
+            try {
+                if (!window.electronAPI) {
+                    showToast('非 Electron 环境，无法选择文件', true);
+                    return;
+                }
+                
+                const filePath = await window.electronAPI.selectMdFile();
+                if (!filePath) {
+                    return;
+                }
+                
+                const software = softwareData.find(s => s.id == currentSoftwareId);
+                if (!software) {
+                    showToast('软件信息不存在', true);
+                    return;
+                }
+                
+                software.mdFilePath = filePath;
+                saveData();
+                
+                const result = await window.electronAPI.readFile(filePath);
+                if (result.success) {
+                    const htmlContent = marked.parse(result.content);
+                    document.getElementById('mdContent').innerHTML = htmlContent;
+                    showToast('MD文件更换成功！');
+                } else {
+                    showToast('读取 MD 文件失败：' + result.message, true);
+                }
+            } catch (error) {
+                showToast('更换 MD 文件失败：' + error.message, true);
+            }
+        }
+
+        function closeModalHelper() {
+            activeModalCount--;
+            if (activeModalCount <= 0) {
+                activeModalCount = 0;
+                document.body.classList.remove('modal-open');
+            }
+        }
+
+        function openPath(path) {
+            if (!path) {
+                showToast('路径信息为空', true);
+                return;
+            }
+
+            if (window.electronAPI) {
+                window.electronAPI.openFolder(path).then(result => {
+                    if (!result.success) {
+                        showToast(result.message, true);
+                    }
+                });
+            } else {
+                let folderPath = path;
+                const lastBackslash = path.lastIndexOf('\\');
+                const lastSlash = path.lastIndexOf('/');
+                const lastDot = path.lastIndexOf('.');
+                
+                if (lastDot > lastBackslash && lastDot > lastSlash) {
+                    if (lastBackslash > 0) {
+                        folderPath = path.substring(0, lastBackslash);
+                    } else if (lastSlash > 0) {
+                        folderPath = path.substring(0, lastSlash);
+                    }
+                }
+                
+                document.getElementById('pathMessage').textContent = '文件夹路径';
+                document.getElementById('pathValue').textContent = folderPath;
+                openPathModal();
+                
+                document.getElementById('copyPathBtn').onclick = function() {
+                    navigator.clipboard.writeText(folderPath).then(() => {
+                        showToast('路径已复制到剪贴板！');
+                        closePathModal();
+                    }).catch(() => {
+                        showToast('复制失败，请手动复制', true);
+                    });
+                };
+            }
+        }
+
+        function openPathById(id) {
+            const software = softwareData.find(s => s.id == id);
+            if (!software) {
+                showToast('软件信息不存在', true);
+                return;
+            }
+            
+            const path = software.folderPath || software.installPath;
+            openPath(path);
+        }
+
+        function openPathModal() {
+            document.getElementById('pathModal').classList.add('active');
+            openModal();
+        }
+
+        function closePathModal() {
+            document.getElementById('pathModal').classList.remove('active');
+            closeModalHelper();
+        }
+
+        function deleteSoftware(id) {
+            const software = softwareData.find(s => s.id == id);
+            if (!software) return;
+            
+            pendingDeleteId = id;
+            document.getElementById('confirmMessage').textContent = `确定要删除软件"${software.name}"吗？此操作不可恢复。`;
+            document.getElementById('confirmModal').classList.add('active');
+            openModal();
+            
+            document.getElementById('confirmDeleteBtn').onclick = function() {
+                softwareData = softwareData.filter(s => s.id != pendingDeleteId);
+                saveData();
+                updateTagFilterDropdown();
+                renderSoftwareList();
+                closeConfirmModal();
+                showToast('软件删除成功！');
+                pendingDeleteId = null;
+            };
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            closeModalHelper();
+            pendingDeleteId = null;
+        }
+
+        function deleteAllSoftware() {
+            if (softwareData.length === 0) {
+                showToast('没有软件可删除', true);
+                return;
+            }
+            
+            document.getElementById('confirmMessage').textContent = `确定要删除所有 ${softwareData.length} 个软件吗？此操作不可恢复。`;
+            document.getElementById('confirmModal').classList.add('active');
+            openModal();
+            
+            document.getElementById('confirmDeleteBtn').onclick = function() {
+                softwareData = [];
+                saveData();
+                renderSoftwareList();
+                closeConfirmModal();
+                showToast('所有软件已删除！');
+            };
+        }
+
+        async function clearAllData() {
+            if (!window.electronAPI) {
+                showToast('此功能仅在桌面版中可用', true);
+                return;
+            }
+            
+            document.getElementById('confirmMessage').textContent = '确定要清除所有数据吗？\n\n包括：软件数据、图标文件等\n\n注意：删除后无法恢复！';
+            document.getElementById('confirmModal').classList.add('active');
+            openModal();
+            
+            document.getElementById('confirmDeleteBtn').onclick = async function() {
+                try {
+                    const result = await window.electronAPI.clearAllData();
+                    if (result.success) {
+                        softwareData = [];
+                        renderSoftwareList();
+                        updateStats();
+                        closeConfirmModal();
+                        const deletedList = result.deletedFiles.length > 0 ? result.deletedFiles.join('、') : '无数据';
+                        showToast(`数据清除成功！\n已删除：${deletedList}`);
+                    } else {
+                        showToast('清除失败：' + result.message, true);
+                    }
+                } catch (error) {
+                    showToast('清除失败：' + error.message, true);
+                }
+            };
+        }
+
+        function toggleSelectAll() {
+            const checkboxes = document.querySelectorAll('.software-checkbox');
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            
+            isAllSelected = !isAllSelected;
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isAllSelected;
+            });
+            
+            selectAllBtn.textContent = isAllSelected ? '☐ 取消全选' : '☑️ 全选';
+            
+            updateBatchDeleteButton();
+        }
+
+        function updateBatchDeleteButton() {
+            const checkboxes = document.querySelectorAll('.software-checkbox:checked');
+            const selectedCount = checkboxes.length;
+            const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+            const selectedCountSpan = document.getElementById('selectedCount');
+            
+            selectedCountSpan.textContent = selectedCount;
+            
+            if (selectedCount > 0) {
+                batchDeleteBtn.classList.remove('hidden');
+            } else {
+                batchDeleteBtn.classList.add('hidden');
+            }
+        }
+
+        function batchDeleteSoftware() {
+            const checkboxes = document.querySelectorAll('.software-checkbox:checked');
+            const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.id);
+            
+            if (selectedIds.length === 0) {
+                showToast('请先选择要删除的软件', true);
+                return;
+            }
+            
+            document.getElementById('confirmMessage').textContent = `确定要删除选中的 ${selectedIds.length} 个软件吗？此操作不可恢复。`;
+            document.getElementById('confirmModal').classList.add('active');
+            openModal();
+            
+            document.getElementById('confirmDeleteBtn').onclick = function() {
+                softwareData = softwareData.filter(s => !selectedIds.includes(String(s.id)));
+                saveData();
+                updateTagFilterDropdown();
+                renderSoftwareList();
+                closeConfirmModal();
+                showToast(`已删除 ${selectedIds.length} 个软件！`);
+            };
+        }
+
+        function toggleInstalled(id) {
+            const softwareIndex = softwareData.findIndex(s => s.id == id);
+            if (softwareIndex !== -1) {
+                softwareData[softwareIndex].installed = !softwareData[softwareIndex].installed;
+                saveData();
+                renderSoftwareList();
+                showToast(softwareData[softwareIndex].installed ? '已标记为已安装！' : '已标记为未安装！');
+            }
+        }
+
+        function toggleFavorite(id) {
+            const softwareIndex = softwareData.findIndex(s => s.id == id);
+            if (softwareIndex !== -1) {
+                softwareData[softwareIndex].favorite = !softwareData[softwareIndex].favorite;
+                saveData();
+                renderSoftwareList();
+                showToast(softwareData[softwareIndex].favorite ? '已收藏！' : '已取消收藏！');
+            }
+        }
+
+        function openLink(url) {
+            if (window.electronAPI) {
+                window.electronAPI.openExternal(url).then(result => {
+                    if (!result.success) {
+                        showToast(result.message, true);
+                    }
+                });
+            } else {
+                document.getElementById('confirmMessage').textContent = `是否打开链接：${url}？`;
+                document.getElementById('confirmModal').classList.add('active');
+                openModal();
+                
+                document.getElementById('confirmDeleteBtn').onclick = function() {
+                    window.open(url, '_blank');
+                    closeConfirmModal();
+                };
+            }
+        }
+
+        async function exportData() {
+            if (softwareData.length === 0) {
+                showToast('没有数据可导出', true);
+                return;
+            }
+            
+            if (window.electronAPI) {
+                const result = await window.electronAPI.exportData();
+                if (result.canceled) {
+                    return;
+                }
+                if (result.success && result.filePath) {
+                    const writeResult = await window.electronAPI.writeFile(result.filePath, JSON.stringify(softwareData, null, 2));
+                    if (writeResult.success) {
+                        showToast('数据导出成功！');
+                    } else {
+                        showToast('导出失败：' + writeResult.message, true);
+                    }
+                }
+            } else {
+                const dataStr = JSON.stringify(softwareData, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '软件管理数据_' + new Date().toLocaleDateString('zh-CN') + '.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        async function importData(event) {
+            if (window.electronAPI) {
+                const result = await window.electronAPI.importData();
+                if (result.canceled) {
+                    return;
+                }
+                if (result.success && result.filePath) {
+                    const readResult = await window.electronAPI.readFile(result.filePath);
+                    if (readResult.success) {
+                        const importedData = JSON.parse(readResult.content);
+                        
+                        if (Array.isArray(importedData)) {
+                            document.getElementById('confirmMessage').textContent = '导入将覆盖现有数据，确定要继续吗？';
+                            document.getElementById('confirmModal').classList.add('active');
+                            
+                            document.getElementById('confirmDeleteBtn').onclick = async function() {
+                                softwareData = importedData;
+                                closeConfirmModal();
+                                showToast('正在导入数据并恢复图标...');
+                                
+                                let restoredCount = 0;
+                                for (let i = 0; i < softwareData.length; i++) {
+                                    const software = softwareData[i];
+                                    if (software.installType === 'local' && software.installPath) {
+                                        const iconResult = await window.electronAPI.extractIcon(software.installPath, software.id);
+                                        if (iconResult.success) {
+                                            software.iconPath = iconResult.iconPath;
+                                            restoredCount++;
+                                        }
+                                    }
+                                }
+                                
+                                saveData();
+                                updateTagFilterDropdown();
+                                renderSoftwareList();
+                                const message = restoredCount > 0 
+                                    ? `数据导入成功！已恢复 ${restoredCount} 个图标` 
+                                    : '数据导入成功！';
+                                showToast(message);
+                            };
+                        } else {
+                            showToast('无效的数据格式', true);
+                        }
+                    } else {
+                        showToast('读取文件失败：' + readResult.message, true);
+                    }
+                }
+            } else {
+                if (event && event.target && event.target.files) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const importedData = JSON.parse(e.target.result);
+                            if (Array.isArray(importedData)) {
+                                document.getElementById('confirmMessage').textContent = '导入将覆盖现有数据，确定要继续吗？';
+                                document.getElementById('confirmModal').classList.add('active');
+                                
+                                document.getElementById('confirmDeleteBtn').onclick = function() {
+                                    softwareData = importedData;
+                                    saveData();
+                                    updateTagFilterDropdown();
+                                    renderSoftwareList();
+                                    closeConfirmModal();
+                                    showToast('数据导入成功！');
+                                };
+                            } else {
+                                showToast('无效的数据格式', true);
+                            }
+                        } catch (error) {
+                            showToast('导入失败：' + error.message, true);
+                        }
+                    };
+                    reader.readAsText(file);
+                    event.target.value = '';
+                } else {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = function(e) {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            try {
+                                const importedData = JSON.parse(e.target.result);
+                                if (Array.isArray(importedData)) {
+                                    document.getElementById('confirmMessage').textContent = '导入将覆盖现有数据，确定要继续吗？';
+                                    document.getElementById('confirmModal').classList.add('active');
+                                    
+                                    document.getElementById('confirmDeleteBtn').onclick = function() {
+                                        softwareData = importedData;
+                                        saveData();
+                                        updateTagFilterDropdown();
+                                        renderSoftwareList();
+                                        closeConfirmModal();
+                                        showToast('数据导入成功！');
+                                    };
+                                } else {
+                                    showToast('无效的数据格式', true);
+                                }
+                            } catch (error) {
+                                showToast('导入失败：' + error.message, true);
+                            }
+                        };
+                        reader.readAsText(file);
+                    };
+                    input.click();
+                }
+            }
+        }
+
+        document.querySelectorAll('.modal-content').forEach(content => {
+            content.addEventListener('wheel', function(e) {
+                e.stopPropagation();
+            });
+        });
+
+        function initTagEvents() {
+            const newTagInput = document.getElementById('newTagInput');
+            const editNewTagInput = document.getElementById('editNewTagInput');
+            const tagManagerSearch = document.getElementById('tagManagerSearch');
+            const tagManagerSort = document.getElementById('tagManagerSort');
+            const tagManagerConfirmBtn = document.getElementById('tagManagerConfirmBtn');
+
+            newTagInput.addEventListener('focus', () => showTagDropdown('newTagInput', 'tagDropdown'));
+            newTagInput.addEventListener('input', () => showTagDropdown('newTagInput', 'tagDropdown'));
+            newTagInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addNewTag();
+                }
+            });
+
+            editNewTagInput.addEventListener('focus', () => showTagDropdown('editNewTagInput', 'editTagDropdown'));
+            editNewTagInput.addEventListener('input', () => showTagDropdown('editNewTagInput', 'editTagDropdown'));
+            editNewTagInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addEditNewTag();
+                }
+            });
+
+            tagManagerSearch.addEventListener('input', (e) => {
+                renderTagManagerGrid(e.target.value, tagManagerSort.value);
+            });
+
+            tagManagerSort.addEventListener('change', (e) => {
+                renderTagManagerGrid(tagManagerSearch.value, e.target.value);
+            });
+
+            tagManagerConfirmBtn.addEventListener('click', confirmTagManagerSelection);
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.tag-select-wrapper')) {
+                    hideTagDropdown();
+                }
+            });
+        }
+
+        loadTagHistory().then(() => {
+            initTagEvents();
+        });
+
+        loadAppData();
+    </script>
+</body>
+</html>

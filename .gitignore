@@ -1,0 +1,8 @@
+node_modules/
+dist/
+config/*.json
+!config/.gitkeep
+resources/icons/
+Thumbs.db
+.DS_Store
+*.log
