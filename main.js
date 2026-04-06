@@ -401,3 +401,88 @@ ipcMain.handle('load-tag-history', async () => {
         return { success: false, message: error.message };
     }
 });
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const k = 1024;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + units[i];
+}
+
+async function calculateFolderSizeWithPowerShell(folderPath) {
+    const psScript = `
+$ErrorActionPreference = 'SilentlyContinue'
+$path = "${folderPath.replace(/\\/g, '\\\\')}"
+
+$files = Get-ChildItem -Path $path -Recurse -File -Force
+$totalSize = ($files | Measure-Object -Property Length -Sum).Sum
+$fileCount = $files.Count
+
+$result = @{
+    totalSize = $totalSize
+    fileCount = $fileCount
+}
+
+$result | ConvertTo-Json -Compress
+`;
+    
+    const tempPsPath = path.join(getIconsDir(), 'temp_folder_size.ps1');
+    fs.writeFileSync(tempPsPath, psScript, 'utf8');
+    
+    try {
+        const { stdout } = await execAsync(
+            `powershell -ExecutionPolicy Bypass -File "${tempPsPath}"`,
+            { maxBuffer: 1024 * 1024 * 10 }
+        );
+        fs.unlinkSync(tempPsPath);
+        
+        const result = JSON.parse(stdout.trim());
+        return {
+            totalSize: result.totalSize || 0,
+            fileCount: result.fileCount || 0
+        };
+    } catch (error) {
+        if (fs.existsSync(tempPsPath)) {
+            fs.unlinkSync(tempPsPath);
+        }
+        throw error;
+    }
+}
+
+ipcMain.handle('calculate-folder-size', async (event, filePath) => {
+    try {
+        if (!filePath) {
+            return { success: false, message: 'Path is empty' };
+        }
+
+        if (!fs.existsSync(filePath)) {
+            return { success: false, message: 'File not found' };
+        }
+
+        const stats = fs.statSync(filePath);
+        let folderPath;
+
+        if (stats.isDirectory()) {
+            folderPath = filePath;
+        } else {
+            folderPath = path.dirname(filePath);
+        }
+
+        event.sender.send('folder-size-progress', { status: 'calculating' });
+
+        const result = await calculateFolderSizeWithPowerShell(folderPath);
+
+        return { 
+            success: true, 
+            folderPath: folderPath,
+            totalSize: result.totalSize,
+            fileCount: result.fileCount,
+            formattedSize: formatFileSize(result.totalSize)
+        };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+});

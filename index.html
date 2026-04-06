@@ -1688,6 +1688,7 @@
                 <button class="btn" id="selectAllBtn" onclick="toggleSelectAll()">☑️ 全选</button>
                 <button class="btn btn-danger hidden" id="batchDeleteBtn" onclick="batchDeleteSoftware()">🗑️ 删除选中 (<span id="selectedCount">0</span>)</button>
                 <button class="btn btn-danger" onclick="deleteAllSoftware()">🗑️ 删除所有</button>
+                <button class="btn btn-primary" onclick="calculateAllSoftwareSize()">📊 计算软件大小</button>
             </div>
 
             <div id="softwareList" class="software-list">
@@ -2693,6 +2694,8 @@
             }
         }
 
+
+
         function handleMdFileSelect() {
             if (window.electronAPI) {
                 window.electronAPI.selectMdFile().then(filePath => {
@@ -3131,6 +3134,12 @@
                                 <div class="info-label">安装包文件</div>
                                 <div class="info-value">${software.installPath}</div>
                             </div>
+                            ${software.folderSize ? `
+                            <div class="info-item">
+                                <div class="info-label">文件夹大小</div>
+                                <div class="info-value">${software.folderSizeFormatted} (${software.fileCount} 个文件)</div>
+                            </div>
+                            ` : ''}
                         ` : `
                             <div class="info-item">
                                 <div class="info-label">下载链接</div>
@@ -3414,6 +3423,77 @@
                 closeConfirmModal();
                 showToast('所有软件已删除！');
             };
+        }
+
+        async function calculateAllSoftwareSize() {
+            if (softwareData.length === 0) {
+                showToast('没有软件可计算大小', true);
+                return;
+            }
+
+            showToast('开始计算软件大小...');
+            
+            let totalSize = 0;
+            let calculatedCount = 0;
+            let skippedCount = 0;
+            let failedCount = 0;
+
+            for (const software of softwareData) {
+                if (software.installType !== 'local' || !software.installPath) {
+                    skippedCount++;
+                    continue;
+                }
+
+                if (software.folderSize) {
+                    totalSize += software.folderSize;
+                    calculatedCount++;
+                    continue;
+                }
+
+                try {
+                    if (window.electronAPI) {
+                        const result = await window.electronAPI.calculateFolderSize(software.installPath);
+                        if (result.success) {
+                            software.folderSize = result.totalSize;
+                            software.folderSizeFormatted = result.formattedSize;
+                            software.fileCount = result.fileCount;
+                            totalSize += result.totalSize;
+                            calculatedCount++;
+                        } else {
+                            failedCount++;
+                        }
+                    }
+                } catch (error) {
+                    failedCount++;
+                }
+            }
+
+            saveData();
+            renderSoftwareList();
+
+            let message = `计算完成！`;
+            if (calculatedCount > 0) {
+                message += ` 已计算 ${calculatedCount} 个软件，`;
+            }
+            if (skippedCount > 0) {
+                message += ` 跳过 ${skippedCount} 个软件，`;
+            }
+            if (failedCount > 0) {
+                message += ` 失败 ${failedCount} 个软件，`;
+            }
+            message += ` 总大小：${formatFileSize(totalSize)}`;
+
+            showToast(message);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const k = 1024;
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + units[i];
         }
 
         async function clearAllData() {

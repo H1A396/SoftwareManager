@@ -16,5 +16,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getIconPath: (softwareId) => ipcRenderer.invoke('get-icon-path', softwareId),
     clearAllData: () => ipcRenderer.invoke('clear-all-data'),
     saveTagHistory: (data) => ipcRenderer.invoke('save-tag-history', data),
-    loadTagHistory: () => ipcRenderer.invoke('load-tag-history')
+    loadTagHistory: () => ipcRenderer.invoke('load-tag-history'),
+    calculateFolderSize: (filePath) => ipcRenderer.invoke('calculate-folder-size', filePath)
 });
