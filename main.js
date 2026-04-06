@@ -412,79 +412,43 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + units[i];
 }
 
-async function calculateFolderSizeWithPowerShell(folderPath) {
-    const tempDir = app.getPath('temp');
-    const tempPsPath = path.join(tempDir, `temp_folder_size_${Date.now()}.ps1`);
+async function calculateFolderSizeWithNode(folderPath) {
+    console.log('Calculating size for folder:', folderPath);
     
-    const psScript = `
-$ErrorActionPreference = 'SilentlyContinue'
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-[System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::InvariantCulture
-[System.Threading.Thread]::CurrentThread.CurrentUICulture = [System.Globalization.CultureInfo]::InvariantCulture
-
-$path = "${folderPath}"
-Write-Output "Processing path: $path"
-
-try {
-    $files = Get-ChildItem -Path $path -Recurse -File -Force -ErrorAction SilentlyContinue
-    $totalSize = ($files | Measure-Object -Property Length -Sum).Sum
-    $fileCount = $files.Count
+    let totalSize = 0;
+    let fileCount = 0;
     
-    Write-Output "Found $fileCount files, total size: $totalSize"
-    
-    $result = @{
-        totalSize = $totalSize
-        fileCount = $fileCount
+    async function traverseDir(dirPath) {
+        const items = await fs.promises.readdir(dirPath, { withFileTypes: true });
+        
+        for (const item of items) {
+            const fullPath = path.join(dirPath, item.name);
+            try {
+                if (item.isFile()) {
+                    const stats = await fs.promises.stat(fullPath);
+                    totalSize += stats.size;
+                    fileCount++;
+                } else if (item.isDirectory()) {
+                    await traverseDir(fullPath);
+                }
+            } catch (err) {
+                console.warn('Skipping', fullPath, err.message);
+            }
+        }
     }
     
-    $result | ConvertTo-Json -Compress -ErrorAction SilentlyContinue
-} catch {
-    Write-Output "{\"totalSize\": 0, \"fileCount\": 0}"
-    Write-Error $_.Exception.Message
-}
-`;
-    
-    fs.writeFileSync(tempPsPath, psScript, 'utf8');
-    
     try {
-        const { stdout, stderr } = await execAsync(
-            `powershell.exe -ExecutionPolicy Bypass -File "${tempPsPath}"`,
-            { 
-                maxBuffer: 1024 * 1024 * 10,
-                shell: true,
-                encoding: 'utf8'
-            }
-        );
-        
-        console.log('PowerShell output:', stdout);
-        if (stderr) {
-            console.error('PowerShell stderr:', stderr);
-        }
-        
-        fs.unlinkSync(tempPsPath);
-        
-        // 提取 JSON 部分
-        const jsonMatch = stdout.trim().match(/\{[^}]*\}/);
-        if (!jsonMatch) {
-            console.error('No JSON found in PowerShell output');
-            return { totalSize: 0, fileCount: 0 };
-        }
-        
-        const result = JSON.parse(jsonMatch[0]);
+        await traverseDir(folderPath);
         return {
-            totalSize: result.totalSize || 0,
-            fileCount: result.fileCount || 0
+            totalSize: totalSize,
+            fileCount: fileCount
         };
-    } catch (error) {
-        console.error('Error in calculateFolderSizeWithPowerShell:', error);
-        if (fs.existsSync(tempPsPath)) {
-            try {
-                fs.unlinkSync(tempPsPath);
-            } catch (unlinkError) {
-                console.error('Failed to delete temp file:', unlinkError);
-            }
-        }
-        return { totalSize: 0, fileCount: 0 };
+    } catch (err) {
+        console.error('Error calculating folder size:', err);
+        return {
+            totalSize: 0,
+            fileCount: 0
+        };
     }
 }
 
@@ -509,7 +473,7 @@ ipcMain.handle('calculate-folder-size', async (event, filePath) => {
 
         event.sender.send('folder-size-progress', { status: 'calculating' });
 
-        const result = await calculateFolderSizeWithPowerShell(folderPath);
+        const result = await calculateFolderSizeWithNode(folderPath);
 
         if (result.totalSize === 0 && result.fileCount === 0) {
             return { 

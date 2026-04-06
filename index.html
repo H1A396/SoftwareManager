@@ -1688,7 +1688,8 @@
                 <button class="btn" id="selectAllBtn" onclick="toggleSelectAll()">☑️ 全选</button>
                 <button class="btn btn-danger hidden" id="batchDeleteBtn" onclick="batchDeleteSoftware()">🗑️ 删除选中 (<span id="selectedCount">0</span>)</button>
                 <button class="btn btn-danger" onclick="deleteAllSoftware()">🗑️ 删除所有</button>
-                <button class="btn btn-primary" onclick="calculateAllSoftwareSize()">📊 计算软件大小</button>
+                <button class="btn btn-primary" onclick="calculateAllSoftwareSize()">📊 计算全部软件大小</button>
+                <button class="btn btn-secondary" onclick="calculateUncheckedSoftwareSize()">🔍 计算未检测软件大小</button>
             </div>
 
             <div id="softwareList" class="software-list">
@@ -3158,6 +3159,7 @@
                             <button class="btn btn-warning" onclick="editSoftware('${software.id}')">✏️ 编辑</button>
                             ${software.installType === 'local' ? `<button class="btn btn-success" data-id="${software.id}" onclick="openPathById('${software.id}')">📂 打开位置</button>` : ''}
                             ${software.installType === 'online' ? `<button class="btn btn-success" data-id="${software.id}" onclick="openLink('${software.installPath}')">🔗 打开链接</button>` : ''}
+                            ${software.installType === 'local' ? `<button class="btn btn-secondary" onclick="computeFolderSize('${software.id}')">📏 计算大小</button>` : ''}
                             <button class="btn btn-danger" onclick="deleteSoftware('${software.id}')">🗑️ 删除</button>
                         </div>
                         <div class="software-tags">
@@ -3484,6 +3486,88 @@
             message += ` 总大小：${formatFileSize(totalSize)}`;
 
             showToast(message);
+        }
+
+        async function calculateUncheckedSoftwareSize() {
+            const uncheckedSoftware = softwareData.filter(software => 
+                software.installType === 'local' && 
+                software.installPath && 
+                !software.folderSize
+            );
+
+            if (uncheckedSoftware.length === 0) {
+                showToast('所有本地软件都已计算过大小', true);
+                return;
+            }
+
+            showToast(`开始计算 ${uncheckedSoftware.length} 个未检测软件的大小...`);
+            
+            let totalSize = 0;
+            let calculatedCount = 0;
+            let failedCount = 0;
+
+            for (const software of uncheckedSoftware) {
+                try {
+                    if (window.electronAPI) {
+                        const result = await window.electronAPI.calculateFolderSize(software.installPath);
+                        if (result.success) {
+                            software.folderSize = result.totalSize;
+                            software.folderSizeFormatted = result.formattedSize;
+                            software.fileCount = result.fileCount;
+                            totalSize += result.totalSize;
+                            calculatedCount++;
+                        } else {
+                            failedCount++;
+                        }
+                    }
+                } catch (error) {
+                    failedCount++;
+                }
+            }
+
+            saveData();
+            renderSoftwareList();
+
+            let message = `计算完成！`;
+            if (calculatedCount > 0) {
+                message += ` 已计算 ${calculatedCount} 个软件，`;
+            }
+            if (failedCount > 0) {
+                message += ` 失败 ${failedCount} 个软件，`;
+            }
+            message += ` 总大小：${formatFileSize(totalSize)}`;
+
+            showToast(message);
+        }
+
+        async function computeFolderSize(softwareId) {
+            const software = softwareData.find(s => s.id == softwareId);
+            if (!software || software.installType !== 'local' || !software.installPath) {
+                showToast('无法计算大小：非本地安装或无安装路径', true);
+                return;
+            }
+
+            showToast(`开始计算 ${software.name} 的大小...`);
+
+            try {
+                if (window.electronAPI) {
+                    const result = await window.electronAPI.calculateFolderSize(software.installPath);
+                    if (result.success) {
+                        software.folderSize = result.totalSize;
+                        software.folderSizeFormatted = result.formattedSize;
+                        software.fileCount = result.fileCount;
+                        saveData();
+                        renderSoftwareList();
+                        showToast(`${software.name} 大小：${result.formattedSize} (${result.fileCount} 个文件)`);
+                    } else {
+                        showToast('计算失败：' + result.message, true);
+                    }
+                } else {
+                    showToast('此功能仅在桌面版中可用', true);
+                }
+            } catch (error) {
+                showToast('计算失败：' + error.message, true);
+            }
         }
 
         function formatFileSize(bytes) {
