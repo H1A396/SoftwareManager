@@ -74,7 +74,7 @@ try {
     } else {
         Write-Output "failed"
     }
-} catch {
+catch {
     Write-Output "error"
 }
 `;
@@ -413,42 +413,78 @@ function formatFileSize(bytes) {
 }
 
 async function calculateFolderSizeWithPowerShell(folderPath) {
+    const tempDir = app.getPath('temp');
+    const tempPsPath = path.join(tempDir, `temp_folder_size_${Date.now()}.ps1`);
+    
     const psScript = `
 $ErrorActionPreference = 'SilentlyContinue'
-$path = "${folderPath.replace(/\\/g, '\\\\')}"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::InvariantCulture
+[System.Threading.Thread]::CurrentThread.CurrentUICulture = [System.Globalization.CultureInfo]::InvariantCulture
 
-$files = Get-ChildItem -Path $path -Recurse -File -Force
-$totalSize = ($files | Measure-Object -Property Length -Sum).Sum
-$fileCount = $files.Count
+$path = "${folderPath}"
+Write-Output "Processing path: $path"
 
-$result = @{
-    totalSize = $totalSize
-    fileCount = $fileCount
+try {
+    $files = Get-ChildItem -Path $path -Recurse -File -Force -ErrorAction SilentlyContinue
+    $totalSize = ($files | Measure-Object -Property Length -Sum).Sum
+    $fileCount = $files.Count
+    
+    Write-Output "Found $fileCount files, total size: $totalSize"
+    
+    $result = @{
+        totalSize = $totalSize
+        fileCount = $fileCount
+    }
+    
+    $result | ConvertTo-Json -Compress -ErrorAction SilentlyContinue
+} catch {
+    Write-Output "{\"totalSize\": 0, \"fileCount\": 0}"
+    Write-Error $_.Exception.Message
 }
-
-$result | ConvertTo-Json -Compress
 `;
     
-    const tempPsPath = path.join(getIconsDir(), 'temp_folder_size.ps1');
     fs.writeFileSync(tempPsPath, psScript, 'utf8');
     
     try {
-        const { stdout } = await execAsync(
-            `powershell -ExecutionPolicy Bypass -File "${tempPsPath}"`,
-            { maxBuffer: 1024 * 1024 * 10 }
+        const { stdout, stderr } = await execAsync(
+            `powershell.exe -ExecutionPolicy Bypass -File "${tempPsPath}"`,
+            { 
+                maxBuffer: 1024 * 1024 * 10,
+                shell: true,
+                encoding: 'utf8'
+            }
         );
+        
+        console.log('PowerShell output:', stdout);
+        if (stderr) {
+            console.error('PowerShell stderr:', stderr);
+        }
+        
         fs.unlinkSync(tempPsPath);
         
-        const result = JSON.parse(stdout.trim());
+        // 提取 JSON 部分
+        const jsonMatch = stdout.trim().match(/\{[^}]*\}/);
+        if (!jsonMatch) {
+            console.error('No JSON found in PowerShell output');
+            return { totalSize: 0, fileCount: 0 };
+        }
+        
+        const result = JSON.parse(jsonMatch[0]);
         return {
             totalSize: result.totalSize || 0,
             fileCount: result.fileCount || 0
         };
     } catch (error) {
+        console.error('Error in calculateFolderSizeWithPowerShell:', error);
         if (fs.existsSync(tempPsPath)) {
-            fs.unlinkSync(tempPsPath);
+            try {
+                fs.unlinkSync(tempPsPath);
+            } catch (unlinkError) {
+                console.error('Failed to delete temp file:', unlinkError);
+            }
         }
-        throw error;
+        return { totalSize: 0, fileCount: 0 };
     }
 }
 
@@ -475,6 +511,14 @@ ipcMain.handle('calculate-folder-size', async (event, filePath) => {
 
         const result = await calculateFolderSizeWithPowerShell(folderPath);
 
+        if (result.totalSize === 0 && result.fileCount === 0) {
+            return { 
+                success: false, 
+                message: 'Failed to calculate folder size (possibly no access permission)',
+                folderPath: folderPath
+            };
+        }
+
         return { 
             success: true, 
             folderPath: folderPath,
@@ -483,6 +527,7 @@ ipcMain.handle('calculate-folder-size', async (event, filePath) => {
             formattedSize: formatFileSize(result.totalSize)
         };
     } catch (error) {
+        console.error('Error in calculate-folder-size:', error);
         return { success: false, message: error.message };
     }
 });
