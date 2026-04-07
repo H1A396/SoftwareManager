@@ -1541,6 +1541,7 @@
                             <div class="file-input-wrapper">
                                 <input type="text" id="installPath" required placeholder="请输入下载链接">
                                 <button type="button" id="selectFileBtn" class="btn btn-file hidden" onclick="handleFileSelect()">📁 选择文件</button>
+                                <button type="button" id="selectIconBtn" class="btn btn-file hidden" onclick="handleIconSelect()">🖼️ 选择图标</button>
                             </div>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
@@ -1832,6 +1833,7 @@
                             <div class="file-input-wrapper">
                                 <input type="text" id="editInstallPath" required placeholder="请输入下载链接">
                                 <button type="button" id="editSelectFileBtn" class="btn btn-file hidden" onclick="handleEditFileSelect()">📁 选择文件</button>
+                                <button type="button" id="editSelectIconBtn" class="btn btn-file hidden" onclick="handleEditIconSelect()">🖼️ 选择图标</button>
                             </div>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
@@ -2417,19 +2419,23 @@
         function toggleEditFileInput() {
             const installType = document.getElementById('editInstallType').value;
             const selectFileBtn = document.getElementById('editSelectFileBtn');
+            const selectIconBtn = document.getElementById('editSelectIconBtn');
             const pathLabel = document.getElementById('editPathLabel');
             const installPath = document.getElementById('editInstallPath');
 
             if (installType === 'local') {
                 selectFileBtn.classList.remove('hidden');
+                selectIconBtn.classList.add('hidden');
                 pathLabel.textContent = '安装包位置 *';
                 installPath.placeholder = '点击选择文件按钮选择安装包';
             } else if (installType === 'online') {
                 selectFileBtn.classList.add('hidden');
+                selectIconBtn.classList.remove('hidden');
                 pathLabel.textContent = '下载链接 *';
                 installPath.placeholder = '请输入下载链接';
             } else {
                 selectFileBtn.classList.add('hidden');
+                selectIconBtn.classList.add('hidden');
                 pathLabel.textContent = '安装包位置/下载链接 *';
                 installPath.placeholder = '请先选择安装方式';
             }
@@ -2515,6 +2521,9 @@
             editingSoftwareId = null;
             editSelectedTags = [];
             editCurrentRating = 0;
+            editSelectedIconPath = null;
+            document.getElementById('editSelectFileBtn').classList.add('hidden');
+            document.getElementById('editSelectIconBtn').classList.add('hidden');
         }
 
         initRating();
@@ -2575,8 +2584,37 @@
                 
                 saveData();
                 updateTagFilterDropdown();
-                renderSoftwareList();
-                showToast('软件更新成功！');
+                
+                // 处理图标提取
+                if ((installType === 'local' && installPath.toLowerCase().endsWith('.exe')) || (installType === 'online' && editSelectedIconPath)) {
+                    const iconPath = installType === 'local' ? installPath : editSelectedIconPath;
+                    extractAndSaveIcon(iconPath, softwareData[softwareIndex].id).then(() => {
+                        renderSoftwareList();
+                        showToast('软件更新成功！');
+                        editSelectedIconPath = null;
+                    }).catch(error => {
+                        console.error('Failed to extract icon:', error);
+                        renderSoftwareList();
+                        showToast('软件更新成功！');
+                        editSelectedIconPath = null;
+                    });
+                } else if (installType === 'online' && installPath) {
+                    // 在线安装且没有选择本地图标，尝试从URL提取favicon
+                    extractFaviconFromUrl(installPath, softwareData[softwareIndex].id).then(() => {
+                        renderSoftwareList();
+                        showToast('软件更新成功！');
+                        editSelectedIconPath = null;
+                    }).catch(error => {
+                        console.error('Failed to extract favicon:', error);
+                        renderSoftwareList();
+                        showToast('软件更新成功！');
+                        editSelectedIconPath = null;
+                    });
+                } else {
+                    renderSoftwareList();
+                    showToast('软件更新成功！');
+                    editSelectedIconPath = null;
+                }
             }
             closeEditModal();
         });
@@ -2629,19 +2667,23 @@
         function toggleFileInput() {
             const installType = document.getElementById('installType').value;
             const selectFileBtn = document.getElementById('selectFileBtn');
+            const selectIconBtn = document.getElementById('selectIconBtn');
             const pathLabel = document.getElementById('pathLabel');
             const installPath = document.getElementById('installPath');
 
             if (installType === 'local') {
                 selectFileBtn.classList.remove('hidden');
+                selectIconBtn.classList.add('hidden');
                 pathLabel.textContent = '安装包位置 *';
                 installPath.placeholder = '点击选择文件按钮选择安装包';
             } else if (installType === 'online') {
                 selectFileBtn.classList.add('hidden');
+                selectIconBtn.classList.remove('hidden');
                 pathLabel.textContent = '下载链接 *';
                 installPath.placeholder = '请输入下载链接';
             } else {
                 selectFileBtn.classList.add('hidden');
+                selectIconBtn.classList.add('hidden');
                 pathLabel.textContent = '安装包位置/下载链接 *';
                 installPath.placeholder = '请先选择安装方式';
             }
@@ -2661,7 +2703,7 @@
 
         function handleFileSelect() {
             if (window.electronAPI) {
-                window.electronAPI.selectFile().then(filePath => {
+                window.electronAPI.selectFile(null).then(filePath => {
                     if (filePath) {
                         document.getElementById('installPath').value = filePath;
                         
@@ -2691,6 +2733,84 @@
                         const fileName = extractFileName(path);
                         softwareNameInput.value = fileName;
                     }
+                }
+            }
+        }
+
+        let selectedIconPath = null;
+        let editSelectedIconPath = null;
+        
+        async function extractFaviconFromUrl(url, softwareId) {
+            if (!window.electronAPI) return;
+            
+            try {
+                // 解析URL获取域名
+                const parsedUrl = new URL(url);
+                const domain = parsedUrl.protocol + '//' + parsedUrl.hostname;
+                const faviconUrl = domain + '/favicon.ico';
+                
+                const result = await window.electronAPI.downloadFavicon(faviconUrl, softwareId);
+                if (result.success) {
+                    console.log('Favicon downloaded successfully');
+                    iconCache.delete(softwareId);
+                }
+            } catch (error) {
+                console.error('Failed to extract favicon:', error);
+            }
+        }
+
+        function handleIconSelect() {
+            if (window.electronAPI) {
+                window.electronAPI.selectFile('exe').then(filePath => {
+                    if (filePath && filePath.toLowerCase().endsWith('.exe')) {
+                        selectedIconPath = filePath;
+                        pendingIconId = Date.now();
+                        extractAndSaveIcon(filePath, pendingIconId).then(() => {
+                            console.log('Icon pre-extracted for online installation:', filePath);
+                            showToast('图标已选择并提取');
+                        }).catch(error => {
+                            console.error('Failed to pre-extract icon:', error);
+                            showToast('提取图标失败', true);
+                        });
+                    } else {
+                        showToast('请选择有效的EXE文件', true);
+                    }
+                });
+            } else {
+                const path = prompt('请输入EXE文件完整路径：\n例如：E:\\ABC\\app.exe');
+                if (path && path.toLowerCase().endsWith('.exe')) {
+                    selectedIconPath = path;
+                    pendingIconId = Date.now();
+                    extractAndSaveIcon(path, pendingIconId).then(() => {
+                        console.log('Icon pre-extracted for online installation:', path);
+                        showToast('图标已选择并提取');
+                    }).catch(error => {
+                        console.error('Failed to pre-extract icon:', error);
+                        showToast('提取图标失败', true);
+                    });
+                } else {
+                    showToast('请选择有效的EXE文件', true);
+                }
+            }
+        }
+
+        function handleEditIconSelect() {
+            if (window.electronAPI) {
+                window.electronAPI.selectFile('exe').then(filePath => {
+                    if (filePath && filePath.toLowerCase().endsWith('.exe')) {
+                        editSelectedIconPath = filePath;
+                        showToast('图标已选择');
+                    } else {
+                        showToast('请选择有效的EXE文件', true);
+                    }
+                });
+            } else {
+                const path = prompt('请输入EXE文件完整路径：\n例如：E:\\ABC\\app.exe');
+                if (path && path.toLowerCase().endsWith('.exe')) {
+                    editSelectedIconPath = path;
+                    showToast('图标已选择');
+                } else {
+                    showToast('请选择有效的EXE文件', true);
                 }
             }
         }
@@ -2756,19 +2876,37 @@
             
             const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
             
-            if (installType === 'local' && installPath.toLowerCase().endsWith('.exe') && !pendingIconId) {
-                extractAndSaveIcon(installPath, software.id).catch(error => {
-                    console.error('Failed to extract icon:', error);
-                });
-            }
-            
             pendingIconId = null;
+            selectedIconPath = null;
             
             saveData();
             updateTagFilterDropdown();
-            renderSoftwareList();
             
-            window.scrollTo(0, scrollPosition);
+            // 处理图标提取
+            if ((installType === 'local' && installPath.toLowerCase().endsWith('.exe') && !pendingIconId) || (installType === 'online' && selectedIconPath)) {
+                const iconPath = installType === 'local' ? installPath : selectedIconPath;
+                extractAndSaveIcon(iconPath, software.id).then(() => {
+                    renderSoftwareList();
+                    window.scrollTo(0, scrollPosition);
+                }).catch(error => {
+                    console.error('Failed to extract icon:', error);
+                    renderSoftwareList();
+                    window.scrollTo(0, scrollPosition);
+                });
+            } else if (installType === 'online' && installPath) {
+                // 在线安装且没有选择本地图标，尝试从URL提取favicon
+                extractFaviconFromUrl(installPath, software.id).then(() => {
+                    renderSoftwareList();
+                    window.scrollTo(0, scrollPosition);
+                }).catch(error => {
+                    console.error('Failed to extract favicon:', error);
+                    renderSoftwareList();
+                    window.scrollTo(0, scrollPosition);
+                });
+            } else {
+                renderSoftwareList();
+                window.scrollTo(0, scrollPosition);
+            }
             
             this.reset();
             document.getElementById('isInstalled').checked = false;
@@ -2778,6 +2916,7 @@
             updateStarsDisplay();
             renderTagContainer();
             document.getElementById('selectFileBtn').classList.add('hidden');
+            document.getElementById('selectIconBtn').classList.add('hidden');
             document.getElementById('pathLabel').textContent = '安装包位置/下载链接 *';
             document.getElementById('installPath').placeholder = '请先选择安装方式';
             
@@ -2814,6 +2953,17 @@
         }
 
         async function getSoftwareIcon(software) {
+            if (window.electronAPI) {
+                try {
+                    const iconPath = await window.electronAPI.getIconPath(software.id);
+                    if (iconPath) {
+                        return `<img src="file://${iconPath}" alt="${software.name} icon" style="width: 100%; height: 100%; object-fit: contain;" />`;
+                    }
+                } catch (error) {
+                    console.error('Failed to get icon:', error);
+                }
+            }
+            
             if (software.installType === 'online') {
                 return '🌐';
             }
@@ -3176,12 +3326,10 @@
             }
             
             filteredData.forEach(async (software) => {
-                if (software.installType === 'local' && software.installPath.toLowerCase().endsWith('.exe')) {
-                    const iconHtml = await getSoftwareIcon(software);
-                    const iconElement = document.getElementById(`icon-${software.id}`);
-                    if (iconElement && iconHtml !== getFileIcon(software.installType, software.installPath)) {
-                        iconElement.innerHTML = iconHtml;
-                    }
+                const iconHtml = await getSoftwareIcon(software);
+                const iconElement = document.getElementById(`icon-${software.id}`);
+                if (iconElement) {
+                    iconElement.innerHTML = iconHtml;
                 }
             });
             

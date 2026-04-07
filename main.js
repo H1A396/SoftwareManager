@@ -56,12 +56,16 @@ async function extractExeIcon(exePath, iconFileName) {
         return iconPath;
     }
     
+    // Escape backslashes for PowerShell
+    const escapedExePath = exePath.replace(/\\/g, '\\\\');
+    const escapedIconPath = iconPath.replace(/\\/g, '\\\\');
+    
     const psScript = `
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
 
-$exePath = "${exePath.replace(/\\/g, '\\\\')}"
-$iconPath = "${iconPath.replace(/\\/g, '\\\\')}"
+$exePath = "${escapedExePath}"
+$iconPath = "${escapedIconPath}"
 
 try {
     $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exePath)
@@ -74,7 +78,7 @@ try {
     } else {
         Write-Output "failed"
     }
-catch {
+} catch {
     Write-Output "error"
 }
 `;
@@ -136,12 +140,19 @@ app.on('activate', () => {
     }
 });
 
-ipcMain.handle('select-file', async () => {
+ipcMain.handle('select-file', async (event, fileType) => {
+    let filters = [{ name: '所有文件', extensions: ['*'] }];
+    
+    if (fileType === 'exe') {
+        filters = [
+            { name: '可执行文件', extensions: ['exe'] },
+            { name: '所有文件', extensions: ['*'] }
+        ];
+    }
+    
     const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openFile'],
-        filters: [
-            { name: '所有文件', extensions: ['*'] }
-        ]
+        filters: filters
     });
 
     if (result.canceled) {
@@ -169,6 +180,28 @@ ipcMain.handle('extract-icon', async (event, exePath, softwareId) => {
         } else {
             return { success: false, message: 'Failed to extract icon' };
         }
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+});
+
+ipcMain.handle('download-favicon', async (event, faviconUrl, softwareId) => {
+    try {
+        const iconsDir = getIconsDir();
+        const iconPath = path.join(iconsDir, `icon_${softwareId}.png`);
+        
+        const response = await fetch(faviconUrl);
+        if (!response.ok) {
+            return { success: false, message: 'Failed to fetch favicon' };
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // 保存图标文件
+        fs.writeFileSync(iconPath, buffer);
+        
+        return { success: true, iconPath: iconPath };
     } catch (error) {
         return { success: false, message: error.message };
     }
