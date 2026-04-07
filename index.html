@@ -1509,6 +1509,13 @@
                     <div class="stat-number" id="localCount">0</div>
                     <div class="stat-label">本地安装</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="installedCount">0</div>
+                    <div class="stat-label">✅ 已安装</div>
+                </div>
+            </div>
+
+            <div class="stats" id="categoryStats" style="display: none;">
             </div>
 
             <div class="form-section" id="formSection">
@@ -1553,6 +1560,14 @@
                                 <option value="媒体工具">媒体工具</option>
                                 <option value="系统工具">系统工具</option>
                                 <option value="浏览器">浏览器</option>
+                                <option value="通讯社交">通讯社交</option>
+                                <option value="学习教育">学习教育</option>
+                                <option value="游戏娱乐">游戏娱乐</option>
+                                <option value="生产力工具">生产力工具</option>
+                                <option value="云存储与同步">云存储与同步</option>
+                                <option value="图形设计">图形设计</option>
+                                <option value="网络安全">网络安全</option>
+                                <option value="数据分析">数据分析</option>
                                 <option value="其他">其他</option>
                             </select>
                         </div>
@@ -1640,6 +1655,9 @@
                             <option value="installType">按安装方式</option>
                             <option value="rating-desc">评分 高-低</option>
                             <option value="rating-asc">评分 低-高</option>
+                            <option value="installed-first">已安装优先</option>
+                            <option value="size-desc">大小 大-小</option>
+                            <option value="size-asc">大小 小-大</option>
                         </select>
                     </div>
                     <div style="min-width: 150px;">
@@ -1650,6 +1668,14 @@
                             <option value="媒体工具">媒体工具</option>
                             <option value="系统工具">系统工具</option>
                             <option value="浏览器">浏览器</option>
+                            <option value="通讯社交">通讯社交</option>
+                            <option value="学习教育">学习教育</option>
+                            <option value="游戏娱乐">游戏娱乐</option>
+                            <option value="生产力工具">生产力工具</option>
+                            <option value="云存储与同步">云存储与同步</option>
+                            <option value="图形设计">图形设计</option>
+                            <option value="网络安全">网络安全</option>
+                            <option value="数据分析">数据分析</option>
                             <option value="其他">其他</option>
                         </select>
                     </div>
@@ -1691,6 +1717,7 @@
                 <button class="btn btn-danger" onclick="deleteAllSoftware()">🗑️ 删除所有</button>
                 <button class="btn btn-primary" onclick="calculateAllSoftwareSize()">📊 计算全部软件大小</button>
                 <button class="btn btn-secondary" onclick="calculateUncheckedSoftwareSize()">🔍 计算未检测软件大小</button>
+                <button class="btn btn-success" onclick="toggleCategoryStats()">📈 分类统计</button>
             </div>
 
             <div id="softwareList" class="software-list">
@@ -1845,6 +1872,14 @@
                                 <option value="媒体工具">媒体工具</option>
                                 <option value="系统工具">系统工具</option>
                                 <option value="浏览器">浏览器</option>
+                                <option value="通讯社交">通讯社交</option>
+                                <option value="学习教育">学习教育</option>
+                                <option value="游戏娱乐">游戏娱乐</option>
+                                <option value="生产力工具">生产力工具</option>
+                                <option value="云存储与同步">云存储与同步</option>
+                                <option value="图形设计">图形设计</option>
+                                <option value="网络安全">网络安全</option>
+                                <option value="数据分析">数据分析</option>
                                 <option value="其他">其他</option>
                             </select>
                         </div>
@@ -1925,6 +1960,27 @@
         let selectedTags = [];
         let currentRating = 0;
         let editingSoftwareId = null;
+
+        const categoryColors = {
+            '开发工具': '#3498db',
+            '办公软件': '#9b59b6',
+            '媒体工具': '#e74c3c',
+            '系统工具': '#34495e',
+            '浏览器': '#1abc9c',
+            '通讯社交': '#e91e63',
+            '学习教育': '#00bcd4',
+            '游戏娱乐': '#ff9800',
+            '生产力工具': '#4caf50',
+            '云存储与同步': '#2196f3',
+            '图形设计': '#9c27b0',
+            '网络安全': '#f44336',
+            '数据分析': '#009688',
+            '其他': '#95a5a6'
+        };
+
+        function getCategoryColor(category) {
+            return categoryColors[category] || '#667eea';
+        }
         let editSelectedTags = [];
         let editCurrentRating = 0;
         let filterInstalled = '';
@@ -3155,6 +3211,47 @@
             document.getElementById('favoriteCount').textContent = softwareData.filter(s => s.favorite).length;
             document.getElementById('onlineCount').textContent = softwareData.filter(s => s.installType === 'online').length;
             document.getElementById('localCount').textContent = softwareData.filter(s => s.installType === 'local').length;
+            document.getElementById('installedCount').textContent = softwareData.filter(s => s.installed).length;
+            updateCategoryStats();
+        }
+
+        function updateCategoryStats() {
+            const categoryStatsContainer = document.getElementById('categoryStats');
+            const categoryCounts = {};
+            
+            Object.keys(categoryColors).forEach(category => {
+                categoryCounts[category] = 0;
+            });
+            
+            softwareData.forEach(software => {
+                if (software.category && categoryColors[software.category]) {
+                    categoryCounts[software.category]++;
+                }
+            });
+            
+            let categoryStatsHTML = '';
+            Object.entries(categoryCounts).forEach(([category, count]) => {
+                if (count > 0) {
+                    categoryStatsHTML += `
+                        <div class="stat-card" style="background: ${categoryColors[category]}; border: 2px solid ${categoryColors[category]};">
+                            <div class="stat-number">${count}</div>
+                            <div class="stat-label">${category}</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            categoryStatsContainer.innerHTML = categoryStatsHTML;
+        }
+
+        function toggleCategoryStats() {
+            const categoryStats = document.getElementById('categoryStats');
+            if (categoryStats.style.display === 'none') {
+                categoryStats.style.display = 'flex';
+                updateCategoryStats();
+            } else {
+                categoryStats.style.display = 'none';
+            }
         }
 
         function renderSoftwareList() {
@@ -3222,6 +3319,14 @@
                             return (b.rating || 0) - (a.rating || 0);
                         case 'rating-asc':
                             return (a.rating || 0) - (b.rating || 0);
+                        case 'installed-first':
+                            if (a.installed && !b.installed) return -1;
+                            if (!a.installed && b.installed) return 1;
+                            return a.id - b.id;
+                        case 'size-desc':
+                            return (b.folderSize || 0) - (a.folderSize || 0);
+                        case 'size-asc':
+                            return (a.folderSize || 0) - (b.folderSize || 0);
                         default:
                             return 0;
                     }
@@ -3272,7 +3377,7 @@
                         <div style="display: flex; align-items: center; gap: 8px;">
                             ${software.version ? `<span style="color: #888;">v${software.version}</span>` : ''}
                             ${software.installed ? `<span onclick="toggleInstalled('${software.id}')" style="background: #2ecc71; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✅ 已安装</span>` : `<span onclick="toggleInstalled('${software.id}')" style="background: #95a5a6; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; user-select: none; transition: all 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">⬜ 未安装</span>`}
-                            ${software.category ? `<span style="background: #667eea; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">${software.category}</span>` : ''}
+                            ${software.category ? `<span style="background: ${getCategoryColor(software.category)}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">${software.category}</span>` : ''}
                         </div>
                     </div>
                     <div class="software-info">
